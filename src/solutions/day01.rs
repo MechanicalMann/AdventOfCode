@@ -1,7 +1,15 @@
 use std::fs;
 
 pub fn part1() {
-    let data = "data/day1.1.txt";
+    get_product(2);
+}
+
+pub fn part2() {
+    get_product(3);
+}
+
+fn get_product(num_of_numbers: i32) -> i32 {
+    let data = "data/day1.txt";
 
     let read = fs::read_to_string(data).expect("Failed to read data file!");
 
@@ -12,31 +20,46 @@ pub fn part1() {
 
     let target = 2020;
 
-    let numbers = find_numbers(&parsed, target);
+    let numbers = find_smarter(&parsed, 0, target, num_of_numbers - 1);
+    let display: Vec<String> = numbers.iter().map(|x| x.to_string()).collect();
+    let sum: i32 = numbers.iter().sum();
+    let product: i32 = numbers.iter().product();
 
-    let (left, right) = numbers;
-    println!("Got: {}, {}", left, right);
-    println!("Sanity check: {}", left + right);
+    println!("Got: {}", display.join(", "));
+    println!("Sanity check: {}", sum);
 
     println!();
-    println!("Answer: {}", left * right);
+    println!("Answer: {}", product);
+
+    product
 }
 
-fn find_numbers(parsed: &[i32], target: i32) -> (i32, i32) {
-    let mut idx = 0;
-    while idx < parsed.len() - 1 {
-        let cur = parsed[idx];
-        if cur > target {
+fn find_smarter(slice: &[i32], current: i32, target: i32, depth: i32) -> Vec<i32> {
+    let mut result: Vec<i32> = vec![];
+    let mut idx: usize = 0;
+    let len = slice.len();
+    while idx < len {
+        let val = slice[idx];
+        idx += 1;
+        if val >= target {
             continue;
         }
-        for next in (idx + 1)..parsed.len() {
-            let n = parsed[next];
-            if n >= target { continue; }
-            if cur + n == target {
-                return (cur, n)
+        if depth > 0 {
+            let next_depth = depth - 1;
+            let inner = find_smarter(&slice[idx..], val + current, target, next_depth);
+            if inner.len() == 0 {
+                continue;
             }
+            result.push(val);
+            result.extend(inner);
+            break;
         }
-        idx += 1;
+
+        if val + current == target {
+            result.push(val);
+            break;
+        }
+
     }
-    (0, 0)
+    result
 }
