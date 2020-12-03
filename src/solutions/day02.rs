@@ -69,9 +69,9 @@ pub fn part2() {
     let lines = read.lines();
 
     let num_valid = lines
-    .map(|x| parse_password(x))
-    .filter(|y| y.is_valid(&pos_validator))
-    .count();
+        .map(|x| parse_password(x))
+        .filter(|y| y.is_valid(&pos_validator))
+        .count();
 
     println!("Answer: {}", num_valid);
 }
