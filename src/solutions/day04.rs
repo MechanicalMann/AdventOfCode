@@ -19,11 +19,43 @@ struct PassportParser<'a, T: Iterator<Item = &'a str>> {
     source: T,
     pattern: Regex,
 }
-
 impl<'a, T: Iterator<Item = &'a str>> PassportParser<'a, T> {
     fn new(source: T) -> PassportParser<'a, T> {
         let pattern = Regex::new(FIELD_MATCHER).unwrap();
         PassportParser { source, pattern }
+    }
+}
+impl<'a, T: Iterator<Item = &'a str>> Iterator for PassportParser<'a, T> {
+    type Item = Passport;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // let's hand-roll a generator function because generators are "unsafe"
+        let mut passport = Passport {
+            ..Default::default()
+        };
+        let mut has_data = false;
+        loop {
+            let line = match self.source.next() {
+                Some(x) => x,
+                None => break,
+            };
+            if line.trim().is_empty() {
+                break;
+            }
+            if !has_data {
+                passport = Passport {
+                    ..Default::default()
+                };
+            }
+            for m in self.pattern.captures_iter(line) {
+                has_data = true;
+                populate_field(&mut passport, &m[1], &m[2]);
+            }
+        }
+        match has_data {
+            true => Some(passport),
+            false => None,
+        }
     }
 }
 
@@ -64,6 +96,7 @@ struct PassportValidator {
 impl PassportValidator {
     fn new() -> PassportValidator {
         PassportValidator {
+            // Don't do this at home, kids
             passport_id: Regex::new(r"^\d{9}$").unwrap(),
             birth_year: Regex::new(r"^(19[2-9]\d|200[0-2])$").unwrap(),
             issue_year: Regex::new(r"^201\d|2020$").unwrap(),
@@ -83,43 +116,6 @@ impl Validator for PassportValidator {
             && self.height.is_match(&passport.height)
             && self.hair_color.is_match(&passport.hair_color)
             && self.eye_color.is_match(&passport.eye_color)
-    }
-}
-
-impl<'a, T: Iterator<Item = &'a str>> Iterator for PassportParser<'a, T> {
-    type Item = Passport;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // let's hand-roll a generator function because generators are "unsafe"
-        let mut passport = Passport {
-            ..Default::default()
-        };
-        let mut has_data = false;
-        loop {
-            let line = match self.source.next() {
-                Some(x) => x,
-                None => break,
-            };
-            if line.trim().is_empty() {
-                return match has_data {
-                    true => Some(passport),
-                    false => None,
-                };
-            }
-            if !has_data {
-                passport = Passport {
-                    ..Default::default()
-                };
-            }
-            for m in self.pattern.captures_iter(line) {
-                has_data = true;
-                populate_field(&mut passport, &m[1], &m[2]);
-            }
-        }
-        match has_data {
-            true => Some(passport),
-            false => None,
-        }
     }
 }
 
