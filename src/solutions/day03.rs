@@ -19,7 +19,7 @@ fn get_trees<T: AsRef<str>>(lines: impl Iterator<Item = T>, dist_x: usize, dist_
         cur_x = (cur_x + dist_x) % width;
         cur_y += 1;
     }
-    return trees;
+    trees
 }
 
 pub fn part1() {
@@ -35,13 +35,13 @@ pub fn part2() {
     let datafile = "data/day3.txt";
     let read = fs::read_to_string(datafile).expect("Failed to read data file!");
 
-    let settings = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
+    let slopes = &[(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
     let mut product = 1;
 
-    for s in settings.iter() {
-        let trees = get_trees(read.lines(), s.0, s.1);
+    for &(x, y) in slopes.iter() {
+        let trees = get_trees(read.lines(), x, y);
         product *= trees;
-        println!("Trees hit going right {} down {}: {}", s.0, s.1, trees);
+        println!("Trees hit going right {} down {}: {}", x, y, trees);
     }
 
     println!("Answer: {}", product);
