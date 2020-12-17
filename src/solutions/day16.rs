@@ -16,6 +16,7 @@ impl Field {
     }
 }
 
+#[derive(Debug)]
 enum ValidationResult {
     Valid,
     Invalid(usize),
@@ -39,21 +40,23 @@ impl PuzzleInput {
     }
 
     fn validate_ticket(&self, ticket: &Vec<usize>) -> ValidationResult {
+        let mut is_valid = true;
         let mut error_rate = 0;
         for value in ticket {
-            let mut is_valid = false;
+            let mut field_valid = false;
             for field in &self.fields {
-                is_valid = field.is_valid(value);
-                if is_valid {
+                field_valid = field.is_valid(value);
+                if field_valid {
                     break;
                 }
             }
-            if !is_valid {
+            if !field_valid {
+                is_valid = false;
                 error_rate += value;
             }
         }
-        match error_rate {
-            0 => ValidationResult::Valid,
+        match is_valid {
+            true => ValidationResult::Valid,
             _ => ValidationResult::Invalid(error_rate),
         }
     }
