@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 mod solutions;
 
 fn main() {
@@ -37,4 +40,6 @@ fn main() {
     solutions::day17::part2();
     solutions::day18::part1();
     solutions::day18::part2();
+    solutions::day19::part1();
+    solutions::day19::part2();
 }
