@@ -1,4 +1,3 @@
-use anyhow::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
@@ -11,25 +10,10 @@ enum Rule {
     Ref(Vec<usize>),
     Or(Box<Rule>, Box<Rule>),
 }
-impl std::fmt::Display for Rule {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(
-            f,
-            "{}",
-            match self {
-                Rule::Char(c) => c.to_string(),
-                Rule::Ref(r) => format!("{:?}", r),
-                Rule::Or(left, right) => format!("{} | {}", left, right),
-            }
-        )
-    }
-}
 
 type Ruleset = HashMap<usize, Rule>;
 
 fn is_valid(rule: &Rule, message: &str, ruleset: &Ruleset) -> bool {
-    println!();
-    println!("Testing {}...", message);
     let chunks = evaluate(rule, &message.chars().collect(), 0, ruleset);
     return chunks.contains(&message.len());
 }
@@ -40,7 +24,6 @@ fn evaluate(r: &Rule, chars: &Vec<char>, start: usize, ruleset: &Ruleset) -> Vec
         return result;
     }
     let i = start;
-    let temp = r.clone();
     match r {
         Rule::Char(c) => {
             if c == &chars[i] {
@@ -48,6 +31,13 @@ fn evaluate(r: &Rule, chars: &Vec<char>, start: usize, ruleset: &Ruleset) -> Vec
             }
         }
         Rule::Ref(rules) => {
+            // Rule refs can contain more than one reference in sequence.
+            // In that case, starting with no offset from the current character,
+            // each rule must be evaluated for an offset of each return value
+            // from its prior sibling, which represent valid paths that matched
+            // a certain number of characters.  This is how we avoid early
+            // termination - by considering each possible valid path, rather
+            // than just the first one that matches.
             let mut offsets: Vec<Vec<usize>> = vec![vec![]; rules.len() + 1];
             offsets[0].push(0);
             for (idx, rule) in rules.iter().enumerate() {
@@ -56,23 +46,17 @@ fn evaluate(r: &Rule, chars: &Vec<char>, start: usize, ruleset: &Ruleset) -> Vec
                     offsets[idx + 1].extend(ri.iter().map(|x| x + o));
                 }
             }
+            // The last result contains the numbers of valid characters for the
+            // whole sequence (since they must *all* match), if any.
             result = offsets[rules.len()].clone();
         }
         Rule::Or(left, right) => {
+            // Another way we avoid early termination is by evaluating both
+            // branches of OR rules and considering the results of each, rather
+            // than just the left (or right)
             result.extend(evaluate(left, chars, i, ruleset));
             result.extend(evaluate(right, chars, i, ruleset));
         }
-    }
-    if result.len() > 0 {
-        println!(
-            "{:indent$}Rule {} matches {:?} chars",
-            "",
-            temp,
-            result,
-            indent = i
-        );
-    } else {
-        println!("{:indent$}Rule {} does not match", "", temp, indent = i);
     }
     result
 }
