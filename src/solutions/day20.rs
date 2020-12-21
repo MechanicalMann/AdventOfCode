@@ -1,5 +1,7 @@
+use colored::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::iter::FromIterator;
 
 type Pixels = HashMap<(usize, usize), char>;
 
@@ -62,6 +64,12 @@ impl Tile {
         }
     }
 
+    fn print_image_row(&self, row: usize) {
+        for col in 1..9 {
+            print!("{}", self.get_pixel(row + 1, col));
+        }
+    }
+
     fn get_permutations(&self) -> Vec<(String, usize, bool, Vec<char>)> {
         let mut perms = vec![];
         for flip in &[false, true] {
@@ -88,14 +96,32 @@ impl Tile {
         }
         borders
     }
+
+    fn measure_choppiness(&self) -> usize {
+        let mut choppiness = 0;
+        for ((x, y), pixel) in &self.pixels {
+            // ignore the borders
+            let (x, y, pixel) = (*x, *y, *pixel);
+            if x == 0 || x == self.size_x - 1 || y == 0 || y == self.size_y - 1 {
+                continue;
+            }
+            if pixel == '#' {
+                choppiness += 1;
+            }
+        }
+        choppiness
+    }
 }
 
 struct Map {
     tiles: HashMap<(isize, isize), Tile>,
+    monsters: Vec<HashSet<(usize, usize)>>,
     min_x: isize,
     min_y: isize,
     max_x: isize,
     max_y: isize,
+    pixels_x: usize,
+    pixels_y: usize,
 }
 impl Map {
     fn add(&mut self, x: isize, y: isize, tile: Tile) {
@@ -110,6 +136,8 @@ impl Map {
             self.max_y = y;
         }
         self.tiles.insert((x, y), tile);
+        self.pixels_x = ((self.max_x + 1 - self.min_x).abs() * 8) as usize;
+        self.pixels_y = ((self.max_y + 1 - self.min_y).abs() * 8) as usize;
     }
 
     fn checksum(&self) -> usize {
@@ -161,18 +189,98 @@ impl Map {
         }
         println!("Checksum: {}", self.checksum())
     }
+
+    fn print_image(&self) {
+        for y in 0..self.pixels_y {
+            for x in 0..self.pixels_x {
+                let pixel = self.get_pixel(x, y).or(Some(' ')).unwrap();
+                match pixel {
+                    'O' => print!("{}", "X".black().on_green()),
+                    '#' => print!("{}", "#".white().on_blue()),
+                    _ => print!("{}", String::from(pixel).on_blue().dimmed()),
+                }
+            }
+            println!();
+        }
+    }
+
+    fn get_pixel(&self, x: usize, y: usize) -> Option<char> {
+        if self.monsters.iter().any(|m| m.contains(&(x, y))) {
+            return Some('O');
+        }
+        let tile_x = (x / 8) as isize + self.min_x;
+        let tile_y = (y / 8) as isize + self.min_y;
+        let x = x % 8 + 1;
+        let y = y % 8 + 1;
+        if tile_x > self.max_x || tile_y > self.max_y {
+            return None;
+        }
+        Some(self.tiles[&(tile_x, tile_y)].get_pixel(y, x))
+    }
+
+    fn measure_choppiness(&self) -> usize {
+        let choppiness: usize = self.tiles.values().map(|t| t.measure_choppiness()).sum();
+        choppiness - (self.monsters.len() * 15)
+    }
 }
 
+fn get_monster(x: usize, y: usize) -> [(usize, usize); 15] {
+    [
+        (x, y),
+        (x + 1, y + 1),
+        (x + 4, y + 1),
+        (x + 5, y),
+        (x + 6, y),
+        (x + 7, y + 1),
+        (x + 10, y + 1),
+        (x + 11, y),
+        (x + 12, y),
+        (x + 13, y + 1),
+        (x + 16, y + 1),
+        (x + 17, y),
+        (x + 18, y),
+        (x + 18, y - 1),
+        (x + 19, y),
+    ]
+}
+
+fn monster_scan(map: &Map) -> Vec<HashSet<(usize, usize)>> {
+    let mut monsters = vec![];
+    for y in 1..map.pixels_y {
+        for x in 0..map.pixels_x - 20 {
+            let tail = match map.get_pixel(x, y) {
+                None => continue,
+                Some(c) => c,
+            };
+            if tail != '#' {
+                continue;
+            }
+            let monster = &get_monster(x, y);
+            let found = monster.iter().map(|&(x, y)| map.get_pixel(x, y));
+            let matching = found.filter(|p| p.is_some() && p.unwrap() == '#');
+            if matching.count() == 15 {
+                monsters.push(HashSet::from_iter(monster.iter().cloned()));
+            }
+        }
+    }
+    monsters
+}
+
+// Lord, forgive me, for I have sinned...
 fn build_map(tiles: &mut Vec<Tile>) -> Vec<Map> {
     let mut maps = vec![];
     let mut seed_state = 0;
+    // let mut seed_state = 4;
     loop {
         let mut map = Map {
             tiles: HashMap::new(),
+            monsters: vec![],
             min_x: 0,
             min_y: 0,
             max_x: 0,
             max_y: 0,
+            pixels_x: 0,
+            pixels_y: 0,
         };
         if seed_state > 8 {
             break;
@@ -247,6 +355,7 @@ fn build_map(tiles: &mut Vec<Tile>) -> Vec<Map> {
         if unplaced.len() == 0 {
             println!("Built a map!");
             maps.push(map);
+            // break;
         }
 
         seed_state += 1;
@@ -291,4 +400,20 @@ pub fn part1() {
         println!();
     }
 }
-pub fn part2() {}
+
+pub fn part2() {
+    let mut data = load_data();
+    let mut maps = build_map(&mut data);
+    for (i, map) in maps.iter_mut().enumerate() {
+        println!("Scanning permutation {} for monsters...", i + 1);
+        map.monsters = monster_scan(&map);
+        let num_monsters = map.monsters.len();
+        println!("Found {} monsters!", num_monsters);
+        if num_monsters != 0 {
+            map.print_image();
+            println!();
+            println!("Roughness of water: {}", map.measure_choppiness());
+            break;
+        }
+    }
+}
