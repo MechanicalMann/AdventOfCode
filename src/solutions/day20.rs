@@ -42,31 +42,9 @@ impl Tile {
         coord
     }
 
-    fn flip(&mut self) {
-        self.flip = !self.flip;
-    }
-
-    fn rotate(&mut self) {
-        self.rotation = (self.rotation + 1) % 4;
-    }
-
-    fn print(&self) {
-        println!("Tile {}:", self.id);
-        for row in 0..10 {
-            self.print_row(row);
-            println!();
-        }
-    }
-
     fn print_row(&self, row: usize) {
         for col in 0..10 {
             print!("{}", self.get_pixel(row, col));
-        }
-    }
-
-    fn print_image_row(&self, row: usize) {
-        for col in 1..9 {
-            print!("{}", self.get_pixel(row + 1, col));
         }
     }
 
@@ -309,11 +287,6 @@ fn build_map(tiles: &mut Vec<Tile>) -> Vec<Map> {
                         }
                         let border = &borders[pi];
                         for p in &permutations {
-                            // println!(
-                            //     "Border: {}, perm: {}",
-                            //     border.3.iter().collect::<String>(),
-                            //     p.3.iter().rev().collect::<String>()
-                            // );
                             if border
                                 .3
                                 .iter()
@@ -323,10 +296,6 @@ fn build_map(tiles: &mut Vec<Tile>) -> Vec<Map> {
                                 == placed.size_x
                             {
                                 let mut tile = unplaced.remove(i);
-                                // println!(
-                                //     "Placed tile {} at {:?} (rotation {}, flip {})",
-                                //     tile.id, spot, p.1, p.2
-                                // );
                                 tile.rotation = ((6 - pi) + p.1) % 4;
                                 tile.flip = p.2;
                                 map.add(spot.0, spot.1, tile);
