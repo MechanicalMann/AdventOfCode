@@ -46,4 +46,6 @@ fn main() {
     solutions::day20::part2();
     solutions::day21::part1();
     solutions::day21::part2();
+    solutions::day22::part1();
+    solutions::day22::part2();
 }
