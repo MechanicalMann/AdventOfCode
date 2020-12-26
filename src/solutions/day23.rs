@@ -1,77 +1,117 @@
 use std::collections::HashMap;
 use std::fs;
 
-fn predict(cups: &mut Vec<u32>, moves: usize) {
-    let length = cups.len();
-    let (mut min, mut max) = (10, 0);
-    for c in cups.iter() {
-        if c < &min {
-            min = *c
-        } else if c > &max {
-            max = *c
+struct CrabCups {
+    head: Link,
+    index: HashMap<u32, Cup>,
+}
+impl CrabCups {
+    fn new() -> Self {
+        CrabCups {
+            head: None,
+            index: HashMap::new(),
         }
     }
-    let mut index: HashMap<_, _> = cups
-        .iter()
-        .cloned()
-        .enumerate()
-        .map(|(x, y)| (y, x))
-        .collect();
-    println!("Begin!");
-    for m in 0..moves {
-        let i = m % length;
-        let selected = [(i + 1) % length, (i + 2) % length, (i + 3) % length];
-        let holding = [cups[selected[0]], cups[selected[1]], cups[selected[2]]];
-        if m % 1000 == 0 {
-            print!("\rMove {}", m + 1);
+
+    fn from(cups: &[u32]) -> Self {
+        if cups.len() == 0 {
+            return CrabCups::new();
         }
-        // println!("\n-- Move {} --", m + 1);
-        // println!("Cups: {}", get_cup_string(&cups, true));
-        // println!("Pick up: {}", get_cup_string(&holding, true));
-        let current = cups[i];
+
+        let first = cups[0];
+        let mut index = HashMap::new();
+        for i in 0..cups.len() - 1 {
+            let cup = Cup {
+                value: cups[i],
+                next: Some(cups[i + 1]),
+            };
+            index.insert(cups[i], cup);
+        }
+        let last = cups[cups.len() - 1];
+        index.insert(
+            last,
+            Cup {
+                value: last,
+                next: Some(first),
+            },
+        );
+        CrabCups {
+            head: Some(first),
+            index,
+        }
+    }
+
+    fn pick_up(&mut self) -> Option<[u32; 3]> {
+        let hi = self.head?;
+        let mut values = [0; 3];
+        let mut cur = hi;
+        for i in 0..3 {
+            cur = self.index[&cur].next?;
+            values[i] = cur;
+        }
+        let next = self.index[&values[2]].next;
+        let head = self.index.get_mut(&hi)?;
+        head.next = next;
+        Some(values)
+    }
+
+    fn place(&mut self, target: u32, values: &[u32; 3]) {
+        let mut node = self.index.get_mut(&target).unwrap();
+        let prev = node.next.unwrap();
+        node.next = Some(values[0]);
+
+        let mut last = self.index.get_mut(&values[2]).unwrap();
+        last.next = Some(prev);
+    }
+
+    fn step(&mut self) {
+        self.head = self.index[&self.head.unwrap()].next;
+    }
+
+    fn len(&self) -> usize {
+        self.index.len()
+    }
+
+    fn get_slice(&self, after: u32, length: usize) -> Vec<u32> {
+        let mut values = vec![];
+        let mut cur = after;
+        for _ in 0..length {
+            cur = self.index[&cur].next.unwrap();
+            values.push(cur);
+        }
+        values
+    }
+}
+
+struct Cup {
+    value: u32,
+    next: Link,
+}
+impl Cup {
+    fn new(value: u32) -> Self {
+        Cup { value, next: None }
+    }
+}
+
+type Link = Option<u32>; // he come to town
+
+fn predict(cups: &mut CrabCups, moves: usize) {
+    let (min, max) = (
+        *cups.index.keys().min().unwrap(),
+        *cups.index.keys().max().unwrap(),
+    );
+    println!("Begin!");
+    for _ in 0..moves {
+        let current = cups.head.unwrap();
+        let holding = cups.pick_up().unwrap();
         let mut target = if current == min { max } else { current - 1 };
         while holding.contains(&target) {
             target = if target <= min { max } else { target - 1 };
         }
-        let pos = index[&target];
-        if cups[pos] != target {
-            println!(
-                "Missed the target: target was {}, but got {} (index {})",
-                target, cups[pos], pos
-            );
-            panic!("Failed to get correct target!");
-        }
-        // println!("Destination: {}", target);
-        let new_pos = ((pos + length) - 3) % length;
-        index.insert(target, new_pos);
-        let new_places = [
-            new_pos,
-            (new_pos + 1) % length,
-            (new_pos + 2) % length,
-            (new_pos + 3) % length,
-        ];
-        let pmax = if new_pos < i {
-            new_pos + length
-        } else {
-            new_pos
-        };
-        for idx in i + 1..pmax {
-            let (idx, val) = (idx % length, cups[(idx + 3) % length]);
-            cups[idx] = val;
-            index.insert(val, idx);
-        }
-        for idx in &new_places {
-            let idx = *idx;
-            let val = if idx == new_pos {
-                target
-            } else {
-                holding[((idx + length) - new_pos - 1) % length]
-            };
-            cups[idx] = val;
-            index.insert(val, idx);
-        }
+        // println!("Target: {}", target);
+        cups.place(target, &holding);
+        cups.step();
     }
-    println!("\rDone!                                                        ");
 }
 
 fn get_cup_string(cups: &[u32], spaces: bool) -> String {
@@ -93,17 +133,15 @@ fn load_data() -> Vec<u32> {
 
 pub fn part1() {
     println!("Time for Crab: Return of the Crab");
-    let mut data = load_data();
-    predict(&mut data, 100);
+    let data = load_data();
+    let mut cups = CrabCups::from(&data);
+    predict(&mut cups, 100);
     println!("\n-- Final --");
-    println!("Cups: {}", get_cup_string(&data, true));
-    let mut answer = vec![];
-    let offset = data.iter().position(|x| x == &1).unwrap();
-    for i in 1..data.len() {
-        answer.push(data[(i + offset) % data.len()]);
-    }
+    // println!("Cups: {}", get_cup_string(, true));
+    let answer = cups.get_slice(1, 8);
     println!("Answer: {}", get_cup_string(&answer, false));
 }
+
 pub fn part2() {
     println!("\n\nTime for Crab: Revenge of the Crab");
     let mut data = load_data();
@@ -111,17 +149,23 @@ pub fn part2() {
     for i in start..1_000_000 {
         data.push(i + 1);
     }
-    predict(&mut data, 10_000_000);
+    let mut cups = CrabCups::from(&data);
+    predict(&mut cups, 10_000_000);
     println!("\n-- Final --");
-    println!("Cups: {}", get_cup_string(&data, true));
     let mut final_cups = vec![];
     let mut answer: usize = 1;
-    let offset = data.iter().position(|x| x == &1).unwrap();
-    for i in &[1, 2] {
-        let cup = data[(i + offset) % data.len()];
+    let mut cup = &cups.index[&1];
+    for _ in 0..2 {
+        cup = &cups.index[&cup.next.unwrap()];
         final_cups.push(cup);
-        answer *= cup as usize;
+        answer *= cup.value as usize;
     }
-    println!("Stars are under: {}", get_cup_string(&final_cups, true));
+    println!(
+        "Stars are under: {}",
+        get_cup_string(
+            &final_cups.iter().map(|c| c.value).collect::<Vec<u32>>(),
+            true
+        )
+    );
     println!("Answer: {}", answer);
 }
