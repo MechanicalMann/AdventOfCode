@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::ops::{Add, Not};
 
@@ -45,6 +45,17 @@ impl Point {
         }
         point
     }
+
+    fn neighbors(self) -> Vec<Point> {
+        vec![
+            self + Direction::E,
+            self + Direction::W,
+            self + Direction::NE,
+            self + Direction::NW,
+            self + Direction::SE,
+            self + Direction::SW,
+        ]
+    }
 }
 impl Add<Direction> for Point {
     type Output = Self;
@@ -85,6 +96,38 @@ impl Floor {
 
     fn count_tiles(&self, color: Tile) -> usize {
         self.tiles.values().filter(|&t| t == &color).count()
+    }
+
+    fn get_changes(&self) -> Vec<(Point, Tile)> {
+        let mut points: HashSet<Point> = self.tiles.keys().cloned().collect();
+        points.extend(self.tiles.keys().flat_map(|p| p.neighbors()));
+        let mut changes = vec![];
+        for (p, t) in points.iter().map(|p| (p, self.get_tile(p))) {
+            let neighbors = p.neighbors();
+            let black = neighbors
+                .iter()
+                .map(|n| self.get_tile(&n))
+                .filter(|t| *t == Tile::Black)
+                .count();
+            match (t, black) {
+                (Tile::Black, 0) | (Tile::Black, 3..=6) | (Tile::White, 2) => {
+                    changes.push((*p, !t.clone()));
+                }
+                _ => (),
+            }
+        }
+        changes
+    }
+
+    fn apply_changes(&mut self, changes: &Vec<(Point, Tile)>) {
+        for (point, tile) in changes {
+            self.tiles.insert(*point, *tile);
+        }
+    }
+
+    fn change(&mut self) {
+        let changes = self.get_changes();
+        self.apply_changes(&changes);
     }
 }
 
@@ -141,4 +184,18 @@ pub fn part1() {
     }
     println!("Black tiles: {}", floor.count_tiles(Tile::Black));
 }
-pub fn part2() {}
+
+pub fn part2() {
+    let data = load_data();
+    let points = get_points(&data);
+    let mut floor = Floor::new();
+    for p in points {
+        floor.flip_tile(p);
+    }
+    for day in 1..=100 {
+        floor.change();
+        if day < 10 || day % 10 == 0 {
+            println!("Day {}: {}", day, floor.count_tiles(Tile::Black));
+        }
+    }
+}
