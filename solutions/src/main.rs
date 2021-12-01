@@ -1,3 +1,6 @@
+mod days;
+mod input;
+
 fn main() {
-    println!("Only 25 days to go!");
+    println!("Day {:02} Part {:02}: {}",  1, 1, days::day01::part1::solve().unwrap());
 }
