@@ -7,7 +7,7 @@ pub mod part1 {
     use super::*;
 
     pub fn solve() -> Result<i32> {
-        let data = AdventInput::for_day(DAY).get_lines::<i32>()?;
+        let data = AdventInput::for_day(DAY).get_lines_as::<i32>()?;
         count_increments(&data)
     }
 }
@@ -16,7 +16,7 @@ pub mod part2 {
     use super::*;
 
     pub fn solve() -> Result<i32> {
-        let data = AdventInput::for_day(DAY).get_lines::<i32>()?;
+        let data = AdventInput::for_day(DAY).get_lines_as::<i32>()?;
         count_window_increments(&data, 3)
     }
 }

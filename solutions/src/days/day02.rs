@@ -8,7 +8,7 @@ const DAY: u8 = 2;
 pub mod part1 {
     use super::*;
     pub fn solve() -> Result<isize> {
-        let data = AdventInput::for_day(DAY).get_lines::<Command>()?;
+        let data = AdventInput::for_day(DAY).get_lines_as::<Command>()?;
         let final_pos = navigate(&data)?;
         Ok(final_pos.x * final_pos.y)
     }
@@ -17,7 +17,7 @@ pub mod part1 {
 pub mod part2 {
     use super::*;
     pub fn solve() -> Result<isize> {
-        let data = AdventInput::for_day(DAY).get_lines::<Command>()?;
+        let data = AdventInput::for_day(DAY).get_lines_as::<Command>()?;
         let final_pos = navigate_with_aim(&data)?;
         Ok(final_pos.x * final_pos.y)
     }
