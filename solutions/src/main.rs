@@ -8,4 +8,6 @@ fn main() {
     println!("Day {:02} Part {:02}: {}",  2, 2, days::day02::part2::solve().unwrap());
     println!("Day {:02} Part {:02}: {}",  3, 1, days::day03::part1::solve().unwrap());
     println!("Day {:02} Part {:02}: {}",  3, 2, days::day03::part2::solve().unwrap());
+    println!("Day {:02} Part {:02}: {}",  4, 1, days::day04::part1::solve().unwrap());
+    println!("Day {:02} Part {:02}: {}",  4, 2, days::day04::part2::solve().unwrap());
 }

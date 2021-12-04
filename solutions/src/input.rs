@@ -13,6 +13,14 @@ impl AdventInput {
         AdventInput { file }
     }
 
+    pub fn get_as<T>(&self) -> Result<T, T::Err>
+    where
+        T: FromStr,
+    {
+        let read = fs::read_to_string(&self.file).unwrap();
+        T::from_str(&read)
+    }
+
     pub fn get_lines(&self) -> Result<Vec<String>> {
         Ok(fs::read_to_string(&self.file)?
             .lines()
