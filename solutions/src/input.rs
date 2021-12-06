@@ -21,6 +21,17 @@ impl AdventInput {
         T::from_str(&read)
     }
 
+    pub fn get_csv_as<T>(&self) -> Result<Vec<T>>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Debug,
+    {
+        Ok(fs::read_to_string(&self.file)?
+            .split(',')
+            .map(|v| v.parse::<T>().unwrap())
+            .collect())
+    }
+
     pub fn get_lines(&self) -> Result<Vec<String>> {
         Ok(fs::read_to_string(&self.file)?
             .lines()
