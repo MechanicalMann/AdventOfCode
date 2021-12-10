@@ -1,5 +1,5 @@
 use crate::input::AdventInput;
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 const DAY: u8 = 10;
 
@@ -8,7 +8,7 @@ pub mod part1 {
 
     pub fn solve() -> Result<usize> {
         let data = AdventInput::for_day(DAY).get()?;
-        Ok(total_score(&data))
+        Ok(total_syntax_score(&data))
     }
 }
 
@@ -17,7 +17,7 @@ pub mod part2 {
 
     pub fn solve() -> Result<usize> {
         let data = AdventInput::for_day(DAY).get()?;
-        Ok(0)
+        Ok(total_completion_score(&data))
     }
 }
 
@@ -53,7 +53,7 @@ fn balance(line: &str) -> Result<Vec<char>, Unbalanced> {
     Ok(tokens)
 }
 
-fn score_char(c: char) -> usize {
+fn score_syntax_err(c: char) -> usize {
     match c {
         ')' => 3,
         ']' => 57,
@@ -63,15 +63,44 @@ fn score_char(c: char) -> usize {
     }
 }
 
-fn get_score(line: &str) -> usize {
+fn get_syntax_score(line: &str) -> usize {
     match balance(line) {
         Ok(_) => 0,
-        Err(e) => score_char(e.c),
+        Err(e) => score_syntax_err(e.c),
     }
 }
 
-fn total_score(input: &str) -> usize {
-    input.lines().map(|l| get_score(l)).sum()
+fn total_syntax_score(input: &str) -> usize {
+    input.lines().map(|l| get_syntax_score(l)).sum()
+}
+
+fn get_completion_score(line: &str) -> usize {
+    let mut score = 0;
+    let mut orphans = match balance(line) {
+        Ok(o) => o,
+        Err(_) => return score,
+    };
+    while let Some(o) = orphans.pop() {
+        score *= 5;
+        score += match o {
+            '(' => 1,
+            '[' => 2,
+            '{' => 3,
+            '<' => 4,
+            _ => 0,
+        };
+    }
+    score
+}
+
+fn total_completion_score(input: &str) -> usize {
+    let mut scores = input
+        .lines()
+        .map(|l| get_completion_score(l))
+        .filter(|&s| s > 0)
+        .collect::<Vec<_>>();
+    scores.sort();
+    scores[scores.len() / 2]
 }
 
 #[cfg(test)]
@@ -96,7 +125,7 @@ mod tests {
 
     #[test]
     fn should_score() {
-        let score = get_score("(]");
+        let score = get_syntax_score("(]");
         assert_eq!(57, score);
     }
 
@@ -112,7 +141,38 @@ mod tests {
 [<(<(<(<{}))><([]([]()
 <{([([[(<>()){}]>(<<{{
 <{([{{}}[<[[[<>{}]]]>[]]";
-        let score = total_score(&input);
+        let score = total_syntax_score(&input);
         assert_eq!(26397, score);
+    }
+
+    #[test]
+    fn should_score_incomplete() {
+        let mut score = get_completion_score("(");
+        assert_eq!(1, score);
+
+        score = get_completion_score("([");
+        assert_eq!(7, score);
+
+        score = get_completion_score("([{");
+        assert_eq!(38, score);
+
+        score = get_completion_score("([{<");
+        assert_eq!(194, score);
+    }
+
+    #[test]
+    fn should_solve_part2_example() {
+        let input = "[({(<(())[]>[[{[]{<()<>>
+[(()[<>])]({[<{<<[]>>(
+{([(<{}[<>[]}>{[]{[(<()>
+(((({<>}<{<{<>}{[]{[]{}
+[[<[([]))<([[{}[[()]]]
+[{[{({}]{}}([{[{{{}}([]
+{<[[]]>}<{[{[{[]{()[[[]
+[<(<(<(<{}))><([]([]()
+<{([([[(<>()){}]>(<<{{
+<{([{{}}[<[[[<>{}]]]>[]]";
+        let score = total_completion_score(&input);
+        assert_eq!(288957, score);
     }
 }
