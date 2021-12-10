@@ -20,4 +20,6 @@ fn main() {
     println!("Day {:02} Part {:02}: {}",  8, 2, days::day08::part2::solve().unwrap());
     println!("Day {:02} Part {:02}: {}",  9, 1, days::day09::part1::solve().unwrap());
     println!("Day {:02} Part {:02}: {}",  9, 2, days::day09::part2::solve().unwrap());
+    println!("Day {:02} Part {:02}: {}", 10, 1, days::day10::part1::solve().unwrap());
+    println!("Day {:02} Part {:02}: {}", 10, 2, days::day10::part2::solve().unwrap());
 }

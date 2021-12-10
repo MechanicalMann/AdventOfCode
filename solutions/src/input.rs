@@ -13,6 +13,10 @@ impl AdventInput {
         AdventInput { file }
     }
 
+    pub fn get(&self) -> Result<String> {
+        Ok(fs::read_to_string(&self.file)?)
+    }
+
     pub fn get_as<T>(&self) -> Result<T, T::Err>
     where
         T: FromStr,
