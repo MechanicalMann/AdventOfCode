@@ -19,7 +19,9 @@ pub mod part2 {
 
     pub fn solve() -> Result<usize> {
         let map = AdventInput::for_day(DAY).get_as::<Map>()?;
-        Ok(0)
+        let mut basins = map.get_basins();
+        basins.sort();
+        Ok(basins.iter().rev().take(3).product::<usize>())
     }
 }
 
@@ -98,6 +100,38 @@ impl Map {
             risk += 1 + self.points[y][x] as usize;
         }
         risk
+    }
+
+    fn get_basin(
+        &self,
+        start: &(usize, usize),
+        explored: &mut HashSet<(usize, usize)>,
+    ) -> Vec<(usize, usize)> {
+        let mut basin = vec![];
+        if explored.contains(start) {
+            return basin;
+        }
+        explored.insert(*start);
+
+        let &(x, y) = start;
+        if self.points[y][x] == 9 {
+            return basin;
+        }
+        basin.push((x, y));
+
+        for point in self.get_adjacent(start) {
+            basin.extend(self.get_basin(&point, explored));
+        }
+        basin
+    }
+
+    fn get_basins(&self) -> Vec<usize> {
+        let mut basins = vec![];
+        for low in self.get_low_points() {
+            let mut explored = HashSet::new();
+            basins.push(self.get_basin(&low, &mut explored).len());
+        }
+        basins
     }
 }
 
@@ -182,5 +216,41 @@ mod tests {
         let map = input.parse::<Map>().unwrap();
         let risk = map.get_total_risk();
         assert_eq!(15, risk);
+    }
+
+    #[test]
+    fn should_get_basins() {
+        let input = "111
+102
+129";
+        let map = input.parse::<Map>().unwrap();
+        let basins = map.get_basins();
+        assert_eq!(vec![8], basins);
+    }
+
+    #[test]
+    fn should_get_part2_basins() {
+        let input = "2199943210
+3987894921
+9856789892
+8767896789
+9899965678";
+        let map = input.parse::<Map>().unwrap();
+        let basins = map.get_basins();
+        assert_eq!(vec![3, 9, 14, 9], basins);
+    }
+
+    #[test]
+    fn should_solve_part2_example() {
+        let input = "2199943210
+3987894921
+9856789892
+8767896789
+9899965678";
+        let map = input.parse::<Map>().unwrap();
+        let mut basins = map.get_basins();
+        basins.sort();
+        let res = basins.iter().rev().take(3).product::<usize>();
+        assert_eq!(1134, res);
     }
 }
