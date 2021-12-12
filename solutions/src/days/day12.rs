@@ -22,8 +22,10 @@ pub mod part2 {
     use super::*;
 
     pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines()?;
-        Ok(0)
+        let input = AdventInput::for_day(DAY).get()?;
+        let mut map = Map::from(input.as_str());
+        map.allow_small_pass = true;
+        Ok(map.get_path_count())
     }
 }
 
@@ -32,6 +34,7 @@ const END: &'static str = "end";
 
 struct Map<'a> {
     caves: HashMap<&'a str, HashSet<&'a str>>,
+    allow_small_pass: bool,
 }
 impl<'a> From<&'a str> for Map<'a> {
     fn from(input: &'a str) -> Self {
@@ -47,6 +50,7 @@ impl<'a> Map<'a> {
     fn new() -> Self {
         Map {
             caves: HashMap::new(),
+            allow_small_pass: false,
         }
     }
 
@@ -64,30 +68,38 @@ impl<'a> Map<'a> {
     fn get_path_count(&self) -> usize {
         let mut paths = 0;
         for path in &self.caves[START] {
-            paths += self.paths_from(path, &vec![START]);
+            let start_counts = HashMap::new();
+            paths += self.paths_from(path, &start_counts);
         }
         paths
     }
 
-    fn paths_from(&self, start: &'a str, prev: &Vec<&'a str>) -> usize {
+    fn paths_from(&self, start: &'a str, counts: &HashMap<&'a str, usize>) -> usize {
         // Only count paths that reach the end
         if start == END {
             return 1;
         }
 
-        if prev.contains(&start) && start.chars().all(|c| c.is_lowercase()) {
-            return 0;
+        let mut smalls = counts.clone();
+        if start.chars().all(|c| c.is_lowercase()) {
+            if self.allow_small_pass {
+                if let Some(&cnt) = smalls.get(start) {
+                    if cnt > 0 && smalls.values().any(|&v| v == 2) {
+                        return 0;
+                    }
+                }
+            } else {
+                if smalls.contains_key(start) {
+                    return 0;
+                }
+            }
+            *smalls.entry(start).or_insert(0) += 1;
         }
 
-        let mut path = prev.clone();
-        path.push(start);
-
-        let mut paths = 0;
-        paths += self.caves[start]
+        self.caves[start]
             .iter()
-            .map(|&c| self.paths_from(c, &path))
-            .sum::<usize>();
-        paths
+            .map(|&c| self.paths_from(c, &smalls))
+            .sum::<usize>()
     }
 }
 
@@ -206,5 +218,20 @@ start-RW";
         let map: Map = input.into();
         let actual = map.get_path_count();
         assert_eq!(226, actual);
+    }
+
+    #[test]
+    fn should_solve_part2_example() {
+        let input = "start-A
+start-b
+A-c
+A-b
+b-d
+A-end
+b-end";
+        let mut map: Map = input.into();
+        map.allow_small_pass = true;
+        let actual = map.get_path_count();
+        assert_eq!(36, actual);
     }
 }
