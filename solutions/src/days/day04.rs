@@ -2,23 +2,24 @@ use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 
-const DAY: u8 = 4;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 4;
 
-pub mod part1 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let mut game = AdventInput::for_day(DAY).get_as::<Game>()?;
+    fn new() -> Self {
+        Solution {}
+    }
+
+    fn part_one(&self) -> Result<usize> {
+        let mut game = self.input().get_as::<Game>()?;
         let (call, score) = game.play()?;
         Ok(call * score)
     }
-}
 
-pub mod part2 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let mut game = AdventInput::for_day(DAY).get_as::<Game>()?;
+    fn part_two(&self) -> Result<usize> {
+        let mut game = self.input().get_as::<Game>()?;
         let (call, score) = game.play_all()?;
         Ok(call * score)
     }

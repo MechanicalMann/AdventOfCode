@@ -1,24 +1,23 @@
 use std::{collections::HashMap, str::FromStr};
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 
-const DAY: u8 = 8;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 8;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines_as::<Display>()?;
+    fn part_one(&self) -> Result<usize> {
+        let data = self.input().get_lines_as::<Display>()?;
         Ok(count_unique_digits(&data))
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines_as::<Display>()?;
+    fn part_two(&self) -> Result<usize> {
+        let data = self.input().get_lines_as::<Display>()?;
         get_total_output(&data)
     }
 }

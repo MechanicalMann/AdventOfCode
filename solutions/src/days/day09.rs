@@ -1,24 +1,23 @@
 use std::{collections::HashSet, str::FromStr};
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 
-const DAY: u8 = 9;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 9;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let map = AdventInput::for_day(DAY).get_as::<Map>()?;
+    fn part_one(&self) -> Result<usize> {
+        let map = self.input().get_as::<Map>()?;
         Ok(map.get_total_risk())
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let map = AdventInput::for_day(DAY).get_as::<Map>()?;
+    fn part_two(&self) -> Result<usize> {
+        let map = self.input().get_as::<Map>()?;
         let mut basins = map.get_basins();
         basins.sort();
         Ok(basins.iter().rev().take(3).product::<usize>())

@@ -1,30 +1,32 @@
 use std::{collections::HashSet, str::FromStr};
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::{bail, Result};
 
-const DAY: u8 = 13;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 13;
 
-pub mod part1 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let mut input = AdventInput::for_day(DAY).get_as::<Input>()?;
+    fn part_one(&self) -> Result<usize> {
+        let mut input = self.input().get_as::<Input>().unwrap();
         input.sheet.fold(input.folds[0]);
         Ok(input.sheet.dots.len())
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<&'static str> {
-        let mut input = AdventInput::for_day(DAY).get_as::<Input>()?;
+    fn part_two(&self) -> Result<usize> {
+        let mut input = self.input().get_as::<Input>().unwrap();
         for f in input.folds {
             input.sheet.fold(f);
         }
+        println!("Day 13 Part 02:");
         input.sheet.print();
-        Ok("Done!")
+        Ok(0)
+    }
+
+    fn print_part_two<T: std::fmt::Display>(&self, _: T) {}
+
+    fn new() -> Self {
+        Solution {}
     }
 }
 

@@ -1,24 +1,23 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 use std::collections::HashMap;
 
-const DAY: u8 = 6;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 6;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let mut data = AdventInput::for_day(DAY).get_csv_as::<u8>()?;
+    fn part_one(&self) -> Result<usize> {
+        let mut data = self.input().get_csv_as::<u8>()?;
         game_of_fish(&mut data, 80);
         Ok(data.len())
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_csv_as::<u8>()?;
+    fn part_two(&self) -> Result<usize> {
+        let data = self.input().get_csv_as::<u8>()?;
         gonna_need_a_bigger_boat(&data, 256)
     }
 }

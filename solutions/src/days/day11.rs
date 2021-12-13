@@ -1,23 +1,22 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
-use std::{collections::HashSet, str::FromStr};
+use std::str::FromStr;
 
-const DAY: u8 = 11;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 11;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let mut grid = AdventInput::for_day(DAY).get_as::<Grid>()?;
+    fn part_one(&self) -> Result<usize> {
+        let mut grid = self.input().get_as::<Grid>()?;
         Ok(grid.run_for(100))
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let mut grid = AdventInput::for_day(DAY).get_as::<Grid>()?;
+    fn part_two(&self) -> Result<usize> {
+        let mut grid = self.input().get_as::<Grid>()?;
         Ok(grid.get_sync())
     }
 }
@@ -107,7 +106,7 @@ impl Grid {
 
     fn run_for(&mut self, iterations: usize) -> usize {
         let mut flashes = 0;
-        for _ in 0..100 {
+        for _ in 0..iterations {
             flashes += self.step();
         }
         flashes

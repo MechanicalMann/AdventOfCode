@@ -1,24 +1,25 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 use std::str::FromStr;
 use std::string::ParseError;
 
-const DAY: u8 = 2;
+pub struct Solution;
+impl Solver<isize, isize> for Solution {
+    const DAY: u8 = 2;
 
-pub mod part1 {
-    use super::*;
-    pub fn solve() -> Result<isize> {
-        let data = AdventInput::for_day(DAY).get_lines_as::<Command>()?;
-        let final_pos = navigate(&data)?;
+    fn new() -> Self {
+        Solution {}
+    }
+
+    fn part_one(&self) -> Result<isize> {
+        let data = self.input().get_lines_as::<Command>().unwrap();
+        let final_pos = navigate(&data);
         Ok(final_pos.x * final_pos.y)
     }
-}
 
-pub mod part2 {
-    use super::*;
-    pub fn solve() -> Result<isize> {
-        let data = AdventInput::for_day(DAY).get_lines_as::<Command>()?;
-        let final_pos = navigate_with_aim(&data)?;
+    fn part_two(&self) -> Result<isize> {
+        let data = self.input().get_lines_as::<Command>().unwrap();
+        let final_pos = navigate_with_aim(&data);
         Ok(final_pos.x * final_pos.y)
     }
 }
@@ -67,11 +68,11 @@ struct Coordinate {
     y: isize,
 }
 
-fn navigate(instructions: &Vec<Command>) -> Result<Coordinate> {
+fn navigate(instructions: &Vec<Command>) -> Coordinate {
     navigate_from(&Coordinate { x: 0, y: 0 }, instructions)
 }
 
-fn navigate_from(start: &Coordinate, instructions: &Vec<Command>) -> Result<Coordinate> {
+fn navigate_from(start: &Coordinate, instructions: &Vec<Command>) -> Coordinate {
     let mut x = start.x;
     let mut y = start.y;
     for instr in instructions {
@@ -81,10 +82,10 @@ fn navigate_from(start: &Coordinate, instructions: &Vec<Command>) -> Result<Coor
             Direction::Down => y += instr.distance,
         }
     }
-    Ok(Coordinate { x, y })
+    Coordinate { x, y }
 }
 
-fn navigate_with_aim(instructions: &Vec<Command>) -> Result<Coordinate> {
+fn navigate_with_aim(instructions: &Vec<Command>) -> Coordinate {
     let mut x: isize = 0;
     let mut y: isize = 0;
     let mut pitch: isize = 0;
@@ -98,7 +99,7 @@ fn navigate_with_aim(instructions: &Vec<Command>) -> Result<Coordinate> {
             Direction::Down => pitch += instr.distance,
         }
     }
-    Ok(Coordinate { x, y })
+    Coordinate { x, y }
 }
 
 #[cfg(test)]
@@ -107,21 +108,21 @@ mod tests {
     #[test]
     fn should_move_forward() {
         let instr = vec![Command::from_str("forward 1").unwrap()];
-        let val = navigate(&instr).unwrap();
+        let val = navigate(&instr);
         assert_eq!(val.x, 1);
         assert_eq!(val.y, 0);
     }
     #[test]
     fn should_move_up() {
         let instr = vec![Command::from_str("up 1").unwrap()];
-        let val = navigate(&instr).unwrap();
+        let val = navigate(&instr);
         assert_eq!(val.x, 0);
         assert_eq!(val.y, -1);
     }
     #[test]
     fn should_move_down() {
         let instr = vec![Command::from_str("down 1").unwrap()];
-        let val = navigate(&instr).unwrap();
+        let val = navigate(&instr);
         assert_eq!(val.x, 0);
         assert_eq!(val.y, 1);
     }
@@ -138,7 +139,7 @@ mod tests {
         .iter()
         .map(|&s| Command::from_str(s).unwrap())
         .collect();
-        let val = navigate(&instr).unwrap();
+        let val = navigate(&instr);
         assert_eq!(val.x, 15);
         assert_eq!(val.y, 10);
     }
@@ -149,7 +150,7 @@ mod tests {
             .iter()
             .map(|&s| Command::from_str(s).unwrap())
             .collect();
-        let val = navigate_with_aim(&instr).unwrap();
+        let val = navigate_with_aim(&instr);
         assert_eq!(val.x, 2);
         assert_eq!(val.y, -4);
     }
@@ -167,7 +168,7 @@ mod tests {
         .iter()
         .map(|&s| Command::from_str(s).unwrap())
         .collect();
-        let val = navigate_with_aim(&instr).unwrap();
+        let val = navigate_with_aim(&instr);
         assert_eq!(val.x, 15);
         assert_eq!(val.y, 60);
     }

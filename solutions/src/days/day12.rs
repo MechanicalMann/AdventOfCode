@@ -1,28 +1,24 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 use itertools::Itertools;
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-};
+use std::collections::{HashMap, HashSet};
 
-const DAY: u8 = 12;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 12;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let input = AdventInput::for_day(DAY).get()?;
+    fn part_one(&self) -> Result<usize> {
+        let input = self.input().get()?;
         let map = Map::from(input.as_str());
         Ok(map.get_path_count())
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let input = AdventInput::for_day(DAY).get()?;
+    fn part_two(&self) -> Result<usize> {
+        let input = self.input().get()?;
         let mut map = Map::from(input.as_str());
         map.allow_small_pass = true;
         Ok(map.get_path_count())

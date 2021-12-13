@@ -2,14 +2,18 @@ use anyhow::Result;
 use std::collections::HashSet;
 use std::str::FromStr;
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 
-const DAY: u8 = 5;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 5;
 
-pub mod part1 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let input = AdventInput::for_day(DAY).get_lines()?;
+    fn new() -> Self {
+        Solution {}
+    }
+
+    fn part_one(&self) -> Result<usize> {
+        let input = self.input().get_lines()?;
         let data: Vec<_> = input
             .iter()
             .map(|l| l.parse::<Line>().unwrap())
@@ -18,12 +22,9 @@ pub mod part1 {
         let overlaps = get_intersections(&data)?;
         Ok(overlaps.len())
     }
-}
 
-pub mod part2 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines_as::<Line>()?;
+    fn part_two(&self) -> Result<usize> {
+        let data = self.input().get_lines_as::<Line>()?;
         let overlaps = get_intersections(&data)?;
         Ok(overlaps.len())
     }

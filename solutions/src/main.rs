@@ -1,31 +1,23 @@
+use anyhow::Result;
+use solver::Solver;
+
 mod days;
 mod input;
+mod solver;
 
-fn main() {
-    println!("Day {:02} Part {:02}: {}",  1, 1, days::day01::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  1, 2, days::day01::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  2, 1, days::day02::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  2, 2, days::day02::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  3, 1, days::day03::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  3, 2, days::day03::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  4, 1, days::day04::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  4, 2, days::day04::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  5, 1, days::day05::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  5, 2, days::day05::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  6, 1, days::day06::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  6, 2, days::day06::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  7, 1, days::day07::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  7, 2, days::day07::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  8, 1, days::day08::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  8, 2, days::day08::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  9, 1, days::day09::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}",  9, 2, days::day09::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 10, 1, days::day10::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 10, 2, days::day10::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 11, 1, days::day11::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 11, 2, days::day11::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 12, 1, days::day12::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 12, 2, days::day12::part2::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 13, 1, days::day13::part1::solve().unwrap());
-    println!("Day {:02} Part {:02}: {}", 13, 2, days::day13::part2::solve().unwrap());
+fn main() -> Result<()> {
+    days::day01::Solution::new().solve()?;
+    days::day02::Solution::new().solve()?;
+    days::day03::Solution::new().solve()?;
+    days::day04::Solution::new().solve()?;
+    days::day05::Solution::new().solve()?;
+    days::day06::Solution::new().solve()?;
+    days::day07::Solution::new().solve()?;
+    days::day08::Solution::new().solve()?;
+    days::day09::Solution::new().solve()?;
+    days::day10::Solution::new().solve()?;
+    days::day11::Solution::new().solve()?;
+    days::day12::Solution::new().solve()?;
+    days::day13::Solution::new().solve()?;
+    Ok(())
 }

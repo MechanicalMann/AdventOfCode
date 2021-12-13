@@ -1,22 +1,21 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 
-const DAY: u8 = 10;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 10;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get()?;
+    fn part_one(&self) -> Result<usize> {
+        let data = self.input().get()?;
         Ok(total_syntax_score(&data))
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get()?;
+    fn part_two(&self) -> Result<usize> {
+        let data = self.input().get()?;
         Ok(total_completion_score(&data))
     }
 }

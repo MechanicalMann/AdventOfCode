@@ -1,22 +1,21 @@
-use crate::input::AdventInput;
+use crate::solver::Solver;
 use anyhow::Result;
 
-const DAY: u8 = 7;
+pub struct Solution;
+impl Solver<i32, i32> for Solution {
+    const DAY: u8 = 7;
 
-pub mod part1 {
-    use super::*;
+    fn new() -> Self {
+        Solution {}
+    }
 
-    pub fn solve() -> Result<i32> {
-        let mut data = AdventInput::for_day(DAY).get_csv_as::<i32>()?;
+    fn part_one(&self) -> Result<i32> {
+        let mut data = self.input().get_csv_as::<i32>()?;
         Ok(total_distance_to_median(&mut data))
     }
-}
 
-pub mod part2 {
-    use super::*;
-
-    pub fn solve() -> Result<i32> {
-        let data = AdventInput::for_day(DAY).get_csv_as::<i32>()?;
+    fn part_two(&self) -> Result<i32> {
+        let data = self.input().get_csv_as::<i32>()?;
         Ok(total_distance_to_mean(&data))
     }
 }

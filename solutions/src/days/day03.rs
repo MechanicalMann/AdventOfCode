@@ -1,22 +1,23 @@
 use anyhow::Result;
 use std::num::ParseIntError;
 
-use crate::input::AdventInput;
+use crate::solver::Solver;
 
-const DAY: u8 = 3;
+pub struct Solution;
+impl Solver<usize, usize> for Solution {
+    const DAY: u8 = 3;
 
-pub mod part1 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines()?;
+    fn new() -> Self {
+        Solution {}
+    }
+
+    fn part_one(&self) -> Result<usize> {
+        let data = self.input().get_lines()?;
         get_power_consumption(&data)
     }
-}
 
-pub mod part2 {
-    use super::*;
-    pub fn solve() -> Result<usize> {
-        let data = AdventInput::for_day(DAY).get_lines()?;
+    fn part_two(&self) -> Result<usize> {
+        let data = self.input().get_lines()?;
         get_life_support(&data)
     }
 }
