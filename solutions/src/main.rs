@@ -19,5 +19,6 @@ fn main() -> Result<()> {
     days::day11::Solution::new().solve()?;
     days::day12::Solution::new().solve()?;
     days::day13::Solution::new().solve()?;
+    days::day14::Solution::new().solve()?;
     Ok(())
 }
