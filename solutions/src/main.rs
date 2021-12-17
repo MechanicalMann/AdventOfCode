@@ -26,6 +26,7 @@ fn main() -> Result<()> {
     days::day13::Solution::new().solve()?;
     days::day14::Solution::new().solve()?;
     days::day15::Solution::new().solve()?;
+    days::day16::Solution::new().solve()?;
     Ok(())
 }
 
@@ -45,7 +46,7 @@ const TITLES: [&str; 25] = [
     "Transparent Origami",
     "Extended Polymerization",
     "Chiton",
-    "???",
+    "Packet Decoder",
     "???",
     "???",
     "???",
@@ -74,6 +75,7 @@ fn perf() -> Result<()> {
         Measure::get(days::day13::Solution::new()),
         Measure::get(days::day14::Solution::new()),
         Measure::get(days::day15::Solution::new()),
+        Measure::get(days::day16::Solution::new()),
     ];
     let mut results = vec![];
     for m in measures {
