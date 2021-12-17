@@ -8,6 +8,9 @@ mod input;
 mod solver;
 
 fn main() -> Result<()> {
+    if Some(String::from("perf")) == env::args().nth(1) {
+        perf()?;
+    }
     days::day01::Solution::new().solve()?;
     days::day02::Solution::new().solve()?;
     days::day03::Solution::new().solve()?;
@@ -23,6 +26,8 @@ fn main() -> Result<()> {
     days::day13::Solution::new().solve()?;
     days::day14::Solution::new().solve()?;
     days::day15::Solution::new().solve()?;
+    Ok(())
+}
 
 const TITLES: [&str; 25] = [
     "Sonar Sweep",
