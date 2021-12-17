@@ -9,7 +9,7 @@ mod solver;
 
 fn main() -> Result<()> {
     if Some(String::from("perf")) == env::args().nth(1) {
-        perf()?;
+        return perf();
     }
     days::day01::Solution::new().solve()?;
     days::day02::Solution::new().solve()?;
