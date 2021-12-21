@@ -1,3 +1,5 @@
+use std::env;
+
 use anyhow::Result;
 use itertools::Itertools;
 use prettytable::{cell, color, format::Alignment, row, Attr, Cell, Row, Table};
@@ -28,6 +30,7 @@ fn main() -> Result<()> {
     days::day15::Solution::new().solve()?;
     days::day16::Solution::new().solve()?;
     days::day17::Solution::new().solve()?;
+    days::day18::Solution::new().solve()?;
     Ok(())
 }
 
@@ -49,7 +52,7 @@ const TITLES: [&str; 25] = [
     "Chiton",
     "Packet Decoder",
     "Trick Shot",
-    "???",
+    "Snailfish",
     "???",
     "???",
     "???",
@@ -78,6 +81,7 @@ fn perf() -> Result<()> {
         Measure::get(days::day15::Solution::new()),
         Measure::get(days::day16::Solution::new()),
         Measure::get(days::day17::Solution::new()),
+        Measure::get(days::day18::Solution::new()),
     ];
     let mut results = vec![];
     for m in measures {
