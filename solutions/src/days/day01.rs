@@ -5,15 +5,12 @@ use anyhow::Result;
 use itertools::Itertools;
 
 pub struct Solution;
-impl Solver<usize, usize> for Solution {
+impl<'a> Solver<'a, usize, usize> for Solution {
     const DAY: u8 = 1;
+    const TITLE: &'a str = "Counting Calories";
 
     fn new() -> Self {
         Solution {}
-    }
-
-    fn title() -> String {
-        "Counting Calories".to_string()
     }
 
     fn part_one(&self) -> Result<usize> {

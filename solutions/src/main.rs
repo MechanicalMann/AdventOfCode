@@ -13,12 +13,16 @@ fn main() -> Result<()> {
         return perf();
     }
     days::day01::Solution::new().solve()?;
+    days::day02::Solution::new().solve()?;
     Ok(())
 }
 
 fn perf() -> Result<()> {
     println!("Generating performance statistics...");
-    let measures: Vec<_> = vec![Measure::get(days::day01::Solution::new())];
+    let measures: Vec<_> = vec![
+        Measure::get(days::day01::Solution::new()),
+        Measure::get(days::day02::Solution::new()),
+    ];
     let mut results = vec![];
     for m in measures {
         results.push((m.title(), m.describe_part_one(), m.time_part_one()?));
