@@ -19,7 +19,8 @@ impl<'a> Solver<'a, usize, usize> for Solution {
     }
 
     fn part_two(&self) -> anyhow::Result<usize> {
-        Ok(0)
+        let rounds = self.input().get_lines_as::<RoundTwo>()?;
+        Ok(get_round_two_score(&rounds))
     }
 }
 
@@ -27,10 +28,27 @@ fn get_player_two_score(rounds: &Vec<Round>) -> usize {
     rounds.iter().map(|round| round.score().1).sum()
 }
 
+fn get_round_two_score(rounds: &Vec<RoundTwo>) -> usize {
+    rounds.iter().map(|round| round.score()).sum()
+}
+
+#[derive(Debug, PartialEq)]
 enum Outcome {
     Lose,
     Draw,
     Win,
+}
+impl FromStr for Outcome {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "X" => Ok(Outcome::Lose),
+            "Y" => Ok(Outcome::Draw),
+            "Z" => Ok(Outcome::Win),
+            _ => Err(anyhow!("Invalid outcome")),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -108,6 +126,35 @@ impl FromStr for Round {
     }
 }
 
+#[derive(Debug, PartialEq)]
+struct RoundTwo {
+    opponent: Hand,
+    outcome: Outcome,
+}
+impl RoundTwo {
+    fn score(&self) -> usize {
+        let score_one = self.opponent.score();
+        match self.outcome {
+            Outcome::Lose => ((score_one + 1) % 3) + 1,
+            Outcome::Draw => score_one + 3,
+            Outcome::Win => (score_one % 3) + 7,
+        }
+    }
+}
+impl FromStr for RoundTwo {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hands: Vec<_> = s.split(" ").collect();
+        if hands.len() != 2 {
+            return Err(anyhow!("Invalid round"));
+        }
+        let opponent = hands[0].parse::<Hand>().expect("Invalid player one hand");
+        let outcome = hands[1].parse::<Outcome>().expect("Invalid outcome");
+        Ok(RoundTwo { opponent, outcome })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,5 +203,36 @@ C Z";
             .collect();
         let score = get_player_two_score(&rounds);
         assert_eq!(15, score);
+    }
+
+    #[test]
+    fn should_score_round_two() {
+        let round1 = RoundTwo {
+            opponent: Hand::Rock,
+            outcome: Outcome::Draw,
+        };
+        assert_eq!(4, round1.score());
+
+        let round2 = RoundTwo {
+            opponent: Hand::Rock,
+            outcome: Outcome::Lose,
+        };
+        assert_eq!(3, round2.score());
+
+        let round3 = RoundTwo {
+            opponent: Hand::Rock,
+            outcome: Outcome::Win,
+        };
+        assert_eq!(8, round3.score());
+    }
+
+    #[test]
+    fn should_solve_part_2() {
+        let rounds: Vec<_> = EXAMPLE_INPUT
+            .lines()
+            .map(|x| x.parse::<RoundTwo>().unwrap())
+            .collect();
+        let score = get_round_two_score(&rounds);
+        assert_eq!(12, score);
     }
 }
