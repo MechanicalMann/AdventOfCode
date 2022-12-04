@@ -1,13 +1,11 @@
 use std::str::FromStr;
 
-use anyhow::{anyhow, Ok};
-
 use crate::solver::Solver;
 
 pub struct Solution;
-impl<'a> Solver<'a, usize, usize> for Solution {
+impl Solver<usize, usize> for Solution {
     const DAY: u8 = 2;
-    const TITLE: &'a str = "Rock Paper Scissors";
+    const TITLE: &'static str = "Rock Paper Scissors";
 
     fn new() -> Self {
         Solution {}

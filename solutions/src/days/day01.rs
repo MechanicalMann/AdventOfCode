@@ -5,9 +5,9 @@ use anyhow::Result;
 use itertools::Itertools;
 
 pub struct Solution;
-impl<'a> Solver<'a, usize, usize> for Solution {
+impl Solver<usize, usize> for Solution {
     const DAY: u8 = 1;
-    const TITLE: &'a str = "Counting Calories";
+    const TITLE: &'static str = "Counting Calories";
 
     fn new() -> Self {
         Solution {}

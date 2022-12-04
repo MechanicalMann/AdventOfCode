@@ -6,9 +6,9 @@ use std::{
     marker::PhantomData,
     time::{Duration, Instant},
 };
-pub trait Solver<'a, T1: Display, T2: Display> {
+pub trait Solver<T1: Display, T2: Display> {
     const DAY: u8;
-    const TITLE: &'a str;
+    const TITLE: &'static str;
 
     fn input(&self) -> AdventInput {
         AdventInput::for_day(Self::DAY)
@@ -56,12 +56,12 @@ pub trait Measurable {
     fn time_part_two(&self) -> Result<Duration>;
 }
 
-pub struct Measure<T: for<'a> Solver<'a, T1, T2>, T1: Display, T2: Display> {
+pub struct Measure<T: Solver<T1, T2>, T1: Display, T2: Display> {
     solver: T,
     _p1: PhantomData<T1>,
     _p2: PhantomData<T2>,
 }
-impl<T: for<'a> Solver<'a, T1, T2>, T1: Display, T2: Display> Measurable for Measure<T, T1, T2> {
+impl<T: Solver<T1, T2>, T1: Display, T2: Display> Measurable for Measure<T, T1, T2> {
     fn title(&self) -> String {
         String::from(T::TITLE)
     }
@@ -78,9 +78,7 @@ impl<T: for<'a> Solver<'a, T1, T2>, T1: Display, T2: Display> Measurable for Mea
         time_execution(|| self.solver.part_two())
     }
 }
-impl<T: 'static + for<'a> Solver<'a, T1, T2>, T1: 'static + Display, T2: 'static + Display>
-    Measure<T, T1, T2>
-{
+impl<T: 'static + Solver<T1, T2>, T1: 'static + Display, T2: 'static + Display> Measure<T, T1, T2> {
     pub fn get(solver: T) -> Box<dyn Measurable> {
         Box::new(Measure {
             solver,

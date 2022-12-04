@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate anyhow;
+
 use anyhow::Result;
 use itertools::Itertools;
 use prettytable::{color, format::Alignment, row, Attr, Cell, Row, Table};
@@ -18,7 +21,6 @@ fn main() -> Result<()> {
 }
 
 fn perf() -> Result<()> {
-    println!("Generating performance statistics...");
     let measures: Vec<_> = vec![
         Measure::get(days::day01::Solution::new()),
         Measure::get(days::day02::Solution::new()),
@@ -53,7 +55,7 @@ fn perf() -> Result<()> {
     let mut table = Table::new();
     table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
 
-    table.set_titles(row!["Year", "Day", "Part", "Title", "Time"]);
+    table.set_titles(row!["Year", "Day", "Title", "Part", "Time"]);
 
     for (title, key, res) in results {
         let s = key.split(' ').collect_vec();
@@ -62,9 +64,9 @@ fn perf() -> Result<()> {
         table.add_row(Row::new(vec![
             Cell::new("2022"),
             Cell::new(day),
-            Cell::new(part),
             Cell::new(&title),
-            Cell::new(&format!("{:0.04}s", dur))
+            Cell::new(part),
+            Cell::new(&format!("{:0.03}s", dur))
                 .with_style(Attr::ForegroundColor(get_quartile_color(dur))),
         ]));
     }
@@ -75,21 +77,21 @@ fn perf() -> Result<()> {
         Cell::new_align("Total", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.04}s", total))
+        Cell::new(&format!("{:0.03}s", total))
             .with_style(Attr::ForegroundColor(get_quartile_color(total))),
     ]));
     table.add_row(Row::new(vec![
         Cell::new_align("Average", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.04}s", mean))
+        Cell::new(&format!("{:0.03}s", mean))
             .with_style(Attr::ForegroundColor(get_quartile_color(mean))),
     ]));
     table.add_row(Row::new(vec![
         Cell::new_align("Median", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.04}s", median))
+        Cell::new(&format!("{:0.03}s", median))
             .with_style(Attr::ForegroundColor(get_quartile_color(median))),
     ]));
 
