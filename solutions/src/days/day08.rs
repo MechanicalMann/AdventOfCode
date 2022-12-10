@@ -8,7 +8,7 @@ use crate::solver::Solver;
 use anyhow::Result;
 
 pub struct Solution;
-impl Solver<usize, usize> for Solution {
+impl Solver<usize, isize> for Solution {
     const DAY: u8 = 8;
     const TITLE: &'static str = "Treetop Tree House";
 
@@ -21,18 +21,19 @@ impl Solver<usize, usize> for Solution {
         Ok(grove.find_visible().len())
     }
 
-    fn part_two(&self) -> Result<usize> {
-        Ok(0)
+    fn part_two(&self) -> Result<isize> {
+        let grove = self.input().get_as::<Grove>()?;
+        Ok(grove.get_scenic_scores().values().max().unwrap().to_owned())
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct Point {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
-impl From<(usize, usize)> for Point {
-    fn from(source: (usize, usize)) -> Self {
+impl From<(isize, isize)> for Point {
+    fn from(source: (isize, isize)) -> Self {
         Point {
             x: source.0,
             y: source.1,
@@ -107,6 +108,66 @@ impl Grove {
         }
         visible
     }
+
+    fn get_scenic_scores(&self) -> HashMap<Point, isize> {
+        let mut scores = HashMap::new();
+        let (max_x, max_y) = (self.size.x - 1, self.size.y - 1);
+
+        for (&point, height) in self.trees.iter() {
+            // Edges get a score of 0 because at least one of the directional distances will be 0
+            if point.x == 0 || point.x == max_x || point.y == 0 || point.y == max_y {
+                scores.insert(point, 0);
+                continue;
+            }
+            let mut dist_offset = 0;
+            let mut dists = [0, 0, 0, 0];
+            let mut gots = [false, false, false, false];
+            while !(gots[0] && gots[1] && gots[2] && gots[3]) {
+                dist_offset += 1;
+                let (pu, pl, pr, pd) = (
+                    Point {
+                        x: point.x,
+                        y: point.y - dist_offset,
+                    },
+                    Point {
+                        x: point.x - dist_offset,
+                        y: point.y,
+                    },
+                    Point {
+                        x: point.x + dist_offset,
+                        y: point.y,
+                    },
+                    Point {
+                        x: point.x,
+                        y: point.y + dist_offset,
+                    },
+                );
+                for (idx, pt) in [(0, pu), (1, pl), (2, pr), (3, pd)] {
+                    if gots[idx] {
+                        continue;
+                    }
+                    let (incr, done) = self.test_point(&pt, height);
+                    if incr {
+                        dists[idx] = dist_offset;
+                    }
+                    gots[idx] = done;
+                }
+            }
+            scores.insert(point, dists.iter().copied().reduce(|a, b| a * b).unwrap());
+        }
+
+        scores
+    }
+
+    fn test_point(&self, p: &Point, height: &u32) -> (bool, bool) {
+        if let Some(h) = self.trees.get(p) {
+            if h >= height {
+                return (true, true);
+            }
+            return (true, false);
+        }
+        (false, true)
+    }
 }
 impl FromStr for Grove {
     type Err = anyhow::Error;
@@ -114,9 +175,10 @@ impl FromStr for Grove {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut trees = HashMap::new();
         let (mut max_x, mut max_y) = (0, 0);
-        for (y, l) in s.lines().enumerate() {
-            for (x, c) in l.chars().enumerate() {
-                trees.insert((x, y).into(), c.to_digit(10).unwrap());
+        for (i, l) in s.lines().enumerate() {
+            for (j, c) in l.chars().enumerate() {
+                let (x, y) = (isize::try_from(j).unwrap(), isize::try_from(i).unwrap());
+                trees.insert((x.into(), y.into()).into(), c.to_digit(10).unwrap());
                 if y == 0 {
                     max_x += 1;
                 }
@@ -196,5 +258,24 @@ mod tests {
         let actual = EXAMPLE_INPUT.parse::<Grove>().unwrap();
         let visible = actual.find_visible();
         assert_eq!(21, visible.len());
+    }
+
+    #[test]
+    fn should_get_score() {
+        let test = "111
+121
+111";
+        let grove = test.parse::<Grove>().unwrap();
+        let scores = grove.get_scenic_scores();
+        let actual = scores.get(&(1, 1).into()).unwrap();
+        assert_eq!(&1, actual);
+    }
+
+    #[test]
+    fn should_solve_part_2() {
+        let grove = EXAMPLE_INPUT.parse::<Grove>().unwrap();
+        let scores = grove.get_scenic_scores();
+        let max = scores.values().max().unwrap();
+        assert_eq!(&8, max);
     }
 }
