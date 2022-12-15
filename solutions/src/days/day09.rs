@@ -16,17 +16,19 @@ impl Solver<usize, usize> for Solution {
 
     fn part_one(&self) -> Result<usize> {
         let instructions = self.input().get_lines_as::<Move>()?;
-        let rope = simulate(&instructions);
+        let rope = simulate(&instructions, 2);
         Ok(rope.tail_history.len())
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let instructions = self.input().get_lines_as::<Move>()?;
+        let rope = simulate(&instructions, 10);
+        Ok(rope.tail_history.len())
     }
 }
 
-fn simulate(instructions: &[Move]) -> Rope {
-    let mut rope = Rope::new();
+fn simulate(instructions: &[Move], knots: usize) -> Rope {
+    let mut rope = Rope::with_knots(knots);
     for i in instructions {
         rope.move_head(i);
     }
@@ -70,22 +72,32 @@ impl FromStr for Move {
 }
 
 struct Rope {
-    head_pos: (isize, isize),
-    tail_pos: (isize, isize),
+    knots: Vec<(isize, isize)>,
     tail_history: HashSet<(isize, isize)>,
 }
 impl Rope {
+    #[allow(dead_code)]
     fn new() -> Self {
+        Rope::with_knots(2)
+    }
+
+    fn with_knots(knots: usize) -> Rope {
+        let knots = (0..knots).map(|_| (0, 0)).collect_vec();
         Rope {
-            head_pos: (0, 0),
-            tail_pos: (0, 0),
+            knots,
             tail_history: HashSet::from_iter([(0, 0)]),
         }
     }
 
     fn move_head(&mut self, instr: &Move) {
-        let (mut head_x, mut head_y) = self.head_pos;
-        let (mut tail_x, mut tail_y) = self.tail_pos;
+        let len = self.knots.len();
+        if len < 1 {
+            panic!("Not enough knots!")
+        }
+
+        let mut knots = self.knots.iter().map(|x| x.to_owned()).collect_vec();
+        let (mut head_x, mut head_y) = knots[0];
+        let tail_idx = len - 1;
         let steps = instr.get_value();
         for _ in 0..steps {
             match instr {
@@ -94,25 +106,33 @@ impl Rope {
                 Move::Left(_) => head_x -= 1,
                 Move::Right(_) => head_x += 1,
             }
-            let (dx, dy) = ((head_x - tail_x), (head_y - tail_y));
-            match dx {
-                2 => tail_x += 1,
-                -2 => tail_x -= 1,
-                1 if dy.abs() == 2 => tail_x += 1,
-                -1 if dy.abs() == 2 => tail_x -= 1,
-                _ => (),
+            knots[0] = (head_x, head_y);
+
+            for i in 1..len {
+                let (prev_x, prev_y) = knots[i - 1];
+                let (mut knot_x, mut knot_y) = knots[i];
+                let (dx, dy) = ((prev_x - knot_x), (prev_y - knot_y));
+                match dx {
+                    2 => knot_x += 1,
+                    -2 => knot_x -= 1,
+                    1 if dy.abs() == 2 => knot_x += 1,
+                    -1 if dy.abs() == 2 => knot_x -= 1,
+                    _ => (),
+                }
+                match dy {
+                    2 => knot_y += 1,
+                    -2 => knot_y -= 1,
+                    1 if dx.abs() == 2 => knot_y += 1,
+                    -1 if dx.abs() == 2 => knot_y -= 1,
+                    _ => (),
+                }
+                knots[i] = (knot_x, knot_y);
+                if i == tail_idx {
+                    self.tail_history.insert((knot_x, knot_y));
+                }
             }
-            match dy {
-                2 => tail_y += 1,
-                -2 => tail_y -= 1,
-                1 if dx.abs() == 2 => tail_y += 1,
-                -1 if dx.abs() == 2 => tail_y -= 1,
-                _ => (),
-            }
-            self.tail_history.insert((tail_x, tail_y));
         }
-        self.head_pos = (head_x, head_y);
-        self.tail_pos = (tail_x, tail_y);
+        self.knots = knots;
     }
 }
 
@@ -148,7 +168,7 @@ R 4";
         let mut rope = Rope::new();
         rope.move_head(&Move::Up(1));
         rope.move_head(&Move::Left(1));
-        assert_eq!((-1, 1), rope.head_pos);
+        assert_eq!((-1, 1), rope.knots[0]);
     }
 
     #[test]
@@ -156,8 +176,8 @@ R 4";
         let mut rope = Rope::new();
         rope.move_head(&Move::Up(2));
         rope.move_head(&Move::Left(2));
-        assert_eq!((-2, 2), rope.head_pos);
-        assert_eq!((-1, 1), rope.tail_pos);
+        assert_eq!((-2, 2), rope.knots[0]);
+        assert_eq!((-1, 2), rope.knots[1]);
     }
 
     #[test]
@@ -177,7 +197,34 @@ R 4";
             .lines()
             .map(|l| l.parse::<Move>().unwrap())
             .collect_vec();
-        let rope = simulate(&instructions);
+        let rope = simulate(&instructions, 2);
         assert_eq!(13, rope.tail_history.len());
+    }
+
+    #[test]
+    fn should_solve_part_2() {
+        let instructions = EXAMPLE_INPUT
+            .lines()
+            .map(|l| l.parse::<Move>().unwrap())
+            .collect_vec();
+        let rope = simulate(&instructions, 10);
+        assert_eq!(1, rope.tail_history.len());
+    }
+
+    #[test]
+    fn should_solve_part_2_longer() {
+        let instructions = "R 5
+U 8
+L 8
+D 3
+R 17
+D 10
+L 25
+U 20"
+            .lines()
+            .map(|l| l.parse::<Move>().unwrap())
+            .collect_vec();
+        let rope = simulate(&instructions, 10);
+        assert_eq!(36, rope.tail_history.len());
     }
 }
