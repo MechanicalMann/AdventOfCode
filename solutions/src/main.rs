@@ -27,6 +27,7 @@ fn main() -> Result<()> {
     days::day08::Solution::new().solve()?;
     days::day09::Solution::new().solve()?;
     days::day10::Solution::new().solve()?;
+    days::day11::Solution::new().solve()?;
     Ok(())
 }
 
@@ -42,6 +43,7 @@ fn perf() -> Result<()> {
         Measure::get(days::day08::Solution::new()),
         Measure::get(days::day09::Solution::new()),
         Measure::get(days::day10::Solution::new()),
+        Measure::get(days::day11::Solution::new()),
     ];
     let mut results = vec![];
     for m in measures {
