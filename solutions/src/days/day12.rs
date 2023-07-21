@@ -18,11 +18,12 @@ impl Solver<usize, usize> for Solution {
 
     fn part_one(&self) -> Result<usize> {
         let map = self.input().get_as::<HeightMap>()?;
-        map.find_easiest_path()
+        map.find_easiest_path(&map.start)
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let map = self.input().get_as::<HeightMap>()?;
+        map.find_shortest_of_all_paths()
     }
 }
 
@@ -46,7 +47,7 @@ impl FromStr for HeightMap {
                 let val = match height {
                     'S' => {
                         start = (x, y);
-                        0
+                        1
                     }
                     'E' => {
                         target = (x, y);
@@ -86,12 +87,12 @@ impl HeightMap {
         adjacent
     }
 
-    fn find_easiest_path(&self) -> Result<usize> {
-        let mut frontier = BinaryHeap::from([Reverse((0, 0, self.start))]);
-        let mut visited: HashMap<(isize, isize), usize> = HashMap::new();
+    fn find_easiest_path(&self, start: &(isize, isize)) -> Result<usize> {
+        let mut frontier = BinaryHeap::from([Reverse((0, 0, start))]);
+        let mut visited: HashMap<&(isize, isize), usize> = HashMap::new();
 
         while let Some(Reverse((_, cur_steps, pos))) = frontier.pop() {
-            if pos == self.target {
+            if pos == &self.target {
                 return Ok(cur_steps);
             }
             if let Some(&seen) = visited.get(&pos) {
@@ -99,12 +100,12 @@ impl HeightMap {
                     continue;
                 }
             }
-            for &next in self.get_adjacent(&pos) {
+            for next in self.get_adjacent(&pos) {
                 let total_steps = cur_steps + 1;
-                let seen_steps = *visited.get(&next).or(Some(&usize::MAX)).unwrap();
+                let seen_steps = *visited.get(next).or(Some(&usize::MAX)).unwrap();
                 if total_steps < seen_steps {
                     frontier.push(Reverse((
-                        total_steps + distance_to(next, self.target),
+                        total_steps + distance_to(next, &self.target),
                         total_steps,
                         next,
                     )));
@@ -114,14 +115,38 @@ impl HeightMap {
         }
         Err(anyhow!("No path found!"))
     }
+
+    fn find_shortest_of_all_paths(&self) -> Result<usize> {
+        let mut shortest = usize::MAX;
+
+        for pos in self.nodes.iter().filter_map(|(k, h)| match &h {
+            1 => Some(k),
+            _ => None,
+        }) {
+            match self.find_easiest_path(pos) {
+                Ok(steps) => {
+                    if steps < shortest {
+                        shortest = steps;
+                    }
+                }
+                _ => (),
+            }
+        }
+        match shortest == usize::MAX {
+            true => Err(anyhow!("No viable path!")),
+            false => Ok(shortest),
+        }
+    }
 }
 
-fn distance_to(source: (isize, isize), target: (isize, isize)) -> usize {
+fn distance_to(source: &(isize, isize), target: &(isize, isize)) -> usize {
     ((target.0 - source.0).abs() + (target.1 - source.1).abs()) as usize
 }
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Ok;
+
     use super::*;
 
     const EXAMPLE_INPUT: &str = "Sabqponm
@@ -148,7 +173,7 @@ Egf";
 cde
 Egf";
         let map = input.parse::<HeightMap>()?;
-        let steps = map.find_easiest_path()?;
+        let steps = map.find_easiest_path(&map.start)?;
         assert_eq!(8, steps);
         Ok(())
     }
@@ -156,8 +181,16 @@ Egf";
     #[test]
     fn should_solve_part_1() -> Result<()> {
         let map = EXAMPLE_INPUT.parse::<HeightMap>()?;
-        let steps = map.find_easiest_path()?;
+        let steps = map.find_easiest_path(&map.start)?;
         assert_eq!(31, steps);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part_2() -> Result<()> {
+        let map = EXAMPLE_INPUT.parse::<HeightMap>()?;
+        let steps = map.find_shortest_of_all_paths()?;
+        assert_eq!(29, steps);
         Ok(())
     }
 }
