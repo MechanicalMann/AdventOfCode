@@ -1,7 +1,9 @@
 use crate::solver::Solver;
 use anyhow::Result;
 use itertools::Itertools;
-use std::{collections::VecDeque, str::FromStr};
+use std::{cmp::Ordering, collections::VecDeque, str::FromStr};
+
+const DIVIDER_PACKETS: &str = "[[2]]\n[[6]]";
 
 pub struct Solution;
 impl Solver<usize, usize> for Solution {
@@ -18,11 +20,17 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let input = format!("{}\n{}", self.input().get()?, DIVIDER_PACKETS).replace("\n\n", "\n");
+        let packets = input
+            .lines()
+            .map(|l| l.parse::<Value>().unwrap())
+            .sorted()
+            .collect_vec();
+        Ok(get_decoder_key(&packets))
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Value {
     Integer(u8),
     List(Vec<Value>),
@@ -56,10 +64,22 @@ impl FromStr for Value {
                 }
                 _ => (),
             }
-            // println!("Stack: {:?}", stack);
         }
 
         Ok(stack.front().unwrap().to_owned())
+    }
+}
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        compare(self, other)
+    }
+}
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match compare(self, other) {
+            Some(o) => o,
+            None => Ordering::Equal,
+        }
     }
 }
 
@@ -85,40 +105,45 @@ impl FromStr for Pair {
 impl Pair {
     fn is_ordered(&self) -> bool {
         match compare(&self.left, &self.right) {
-            Some(v) => v,
+            Some(v) => match v {
+                Ordering::Less => true,
+                _ => false,
+            },
             None => false,
         }
     }
 }
 
-fn compare(left: &Value, right: &Value) -> Option<bool> {
-    // println!("Comparing: {:?} to {:?}", left, right);
+fn compare(left: &Value, right: &Value) -> Option<Ordering> {
     match (left, right) {
         (Value::Integer(l), Value::Integer(r)) => {
             if l < r {
-                Some(true)
+                Some(Ordering::Less)
             } else if l > r {
-                Some(false)
+                Some(Ordering::Greater)
             } else {
-                None
+                Some(Ordering::Equal)
             }
         }
         (Value::List(l), Value::List(r)) => {
             let (mut il, mut ir) = (l.iter(), r.iter());
             loop {
                 match (il.next(), ir.next()) {
-                    (None, Some(_)) => return Some(true),
-                    (Some(_), None) => return Some(false),
+                    (None, Some(_)) => return Some(Ordering::Less),
+                    (Some(_), None) => return Some(Ordering::Greater),
                     (Some(vl), Some(vr)) => match compare(vl, vr) {
-                        Some(v) => return Some(v),
-                        None => (),
+                        Some(o) => match o {
+                            Ordering::Less | Ordering::Greater => return Some(o),
+                            _ => (),
+                        },
+                        _ => (),
                     },
                     _ => {
                         break;
                     }
                 }
             }
-            None
+            Some(Ordering::Equal)
         }
         (Value::Integer(l), Value::List(_)) => {
             compare(&Value::List(vec![Value::Integer(*l)]), right)
@@ -141,6 +166,24 @@ fn get_valid_indices(pairs: &[Pair]) -> Vec<usize> {
 
 fn sum_valid_indices(pairs: &[Pair]) -> usize {
     get_valid_indices(pairs).iter().sum()
+}
+
+fn get_divider_indices(values: &[Value]) -> Vec<usize> {
+    let dividers = DIVIDER_PACKETS
+        .lines()
+        .map(|l| l.parse::<Value>().unwrap())
+        .collect_vec();
+    let mut indices = vec![];
+    for (i, value) in values.iter().enumerate() {
+        if dividers.contains(value) {
+            indices.push(i + 1);
+        }
+    }
+    indices
+}
+
+fn get_decoder_key(values: &[Value]) -> usize {
+    get_divider_indices(values).iter().product()
 }
 
 #[cfg(test)]
@@ -227,6 +270,64 @@ mod tests {
             .map(|s| s.parse::<Pair>().unwrap())
             .collect_vec();
         assert_eq!(sum_valid_indices(&pairs), 13);
+        Ok(())
+    }
+
+    #[test]
+    fn should_sort() -> Result<()> {
+        let input = "[1,1,5,1,1]
+[[]]
+[1,1,3,1,1]
+[[[]]]
+[[1],[2,3,4]]
+[]";
+        let packets = input
+            .lines()
+            .map(|l| l.parse::<Value>().unwrap())
+            .sorted()
+            .collect_vec();
+        itertools::assert_equal(
+            vec![
+                Value::List(vec![]),
+                Value::List(vec![Value::List(vec![])]),
+                Value::List(vec![Value::List(vec![Value::List(vec![])])]),
+                Value::List(vec![
+                    Value::Integer(1),
+                    Value::Integer(1),
+                    Value::Integer(3),
+                    Value::Integer(1),
+                    Value::Integer(1),
+                ]),
+                Value::List(vec![
+                    Value::Integer(1),
+                    Value::Integer(1),
+                    Value::Integer(5),
+                    Value::Integer(1),
+                    Value::Integer(1),
+                ]),
+                Value::List(vec![
+                    Value::List(vec![Value::Integer(1)]),
+                    Value::List(vec![
+                        Value::Integer(2),
+                        Value::Integer(3),
+                        Value::Integer(4),
+                    ]),
+                ]),
+            ],
+            packets,
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part_2() -> Result<()> {
+        let input = format!("{}\n{}", EXAMPLE_INPUT, DIVIDER_PACKETS).replace("\n\n", "\n");
+        let values = input
+            .lines()
+            .map(|l| l.parse::<Value>().unwrap())
+            .sorted()
+            .collect_vec();
+        assert_eq!(get_decoder_key(&values), 140);
         Ok(())
     }
 
