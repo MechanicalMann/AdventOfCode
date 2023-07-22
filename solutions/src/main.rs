@@ -17,18 +17,19 @@ fn main() -> Result<()> {
     if Some(String::from("perf")) == env::args().nth(1) {
         return perf();
     }
-    // days::day01::Solution::new().solve()?;
-    // days::day02::Solution::new().solve()?;
-    // days::day03::Solution::new().solve()?;
-    // days::day04::Solution::new().solve()?;
-    // days::day05::Solution::new().solve()?;
-    // days::day06::Solution::new().solve()?;
-    // days::day07::Solution::new().solve()?;
-    // days::day08::Solution::new().solve()?;
-    // days::day09::Solution::new().solve()?;
-    // days::day10::Solution::new().solve()?;
-    // days::day11::Solution::new().solve()?;
+    days::day01::Solution::new().solve()?;
+    days::day02::Solution::new().solve()?;
+    days::day03::Solution::new().solve()?;
+    days::day04::Solution::new().solve()?;
+    days::day05::Solution::new().solve()?;
+    days::day06::Solution::new().solve()?;
+    days::day07::Solution::new().solve()?;
+    days::day08::Solution::new().solve()?;
+    days::day09::Solution::new().solve()?;
+    days::day10::Solution::new().solve()?;
+    days::day11::Solution::new().solve()?;
     days::day12::Solution::new().solve()?;
+    days::day13::Solution::new().solve()?;
     Ok(())
 }
 
@@ -46,6 +47,7 @@ fn perf() -> Result<()> {
         Measure::get(days::day10::Solution::new()),
         Measure::get(days::day11::Solution::new()),
         Measure::get(days::day12::Solution::new()),
+        Measure::get(days::day13::Solution::new()),
     ];
     let mut results = vec![];
     for m in measures {

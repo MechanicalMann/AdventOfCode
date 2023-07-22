@@ -54,4 +54,16 @@ impl AdventInput {
         let read = fs::read_to_string(&self.file)?;
         Ok(read.lines().map(|x| x.parse::<T>().unwrap()).collect())
     }
+
+    pub fn get_grouped_as<T>(&self) -> Result<Vec<T>>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Debug,
+    {
+        let read = fs::read_to_string(&self.file)?;
+        Ok(read
+            .split("\n\n")
+            .map(|x| x.parse::<T>().unwrap())
+            .collect())
+    }
 }
