@@ -15,12 +15,14 @@ fn main() -> Result<()> {
         return perf();
     }
     days::day01::Solution::new().solve()?;
+    days::day02::Solution::new().solve()?;
     Ok(())
 }
 
 fn perf() -> Result<()> {
     let measures: Vec<_> = vec![
         Measure::get(days::day01::Solution::new()),
+        Measure::get(days::day02::Solution::new()),
     ];
     let mut results = vec![];
     for m in measures {
