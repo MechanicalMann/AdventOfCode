@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     if Some(String::from("perf")) == env::args().nth(1) {
         return perf();
     }
-    days::day01::Solution::new().solve()?;
+    // days::day01::Solution::new().solve()?;
     days::day02::Solution::new().solve()?;
     Ok(())
 }
@@ -61,7 +61,7 @@ fn perf() -> Result<()> {
         let (day, part) = (s[1], s[3]);
         let dur = res.as_secs_f32();
         table.add_row(Row::new(vec![
-            Cell::new("2022"),
+            Cell::new("2023"),
             Cell::new(day),
             Cell::new(&title),
             Cell::new(part),
