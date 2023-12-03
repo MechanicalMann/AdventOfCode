@@ -121,23 +121,19 @@ impl Schematic {
     }
 
     fn get_gear_ratios(&self) -> Vec<usize> {
-        let mut geared: HashMap<Point, Vec<usize>> = HashMap::new();
+        let mut geared: HashMap<Point, (usize, usize)> = HashMap::new();
         for &(start, stop, n) in self.numbers.iter() {
             for &a in get_adjacencies(start, stop).iter() {
                 if self.gears.contains(&a) {
-                    geared.entry(a).or_insert(vec![]).push(n);
+                    let (count, ratio) = geared.entry(a).or_insert((0, 1));
+                    *count += 1;
+                    *ratio *= n;
                 }
             }
         }
         geared
             .iter()
-            .filter_map(|(_, v)| {
-                if v.len() == 2 {
-                    Some(v.iter().product())
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(_, &(c, v))| if c == 2 { Some(v) } else { None })
             .collect_vec()
     }
 }
