@@ -52,8 +52,8 @@ pub trait Measurable {
     fn title(&self) -> String;
     fn describe_part_one(&self) -> String;
     fn describe_part_two(&self) -> String;
-    fn time_part_one(&self) -> Result<Duration>;
-    fn time_part_two(&self) -> Result<Duration>;
+    fn time_part_one(&self, iter: u8) -> Result<Duration>;
+    fn time_part_two(&self, iter: u8) -> Result<Duration>;
 }
 
 pub struct Measure<T: Solver<T1, T2>, T1: Display, T2: Display> {
@@ -71,11 +71,11 @@ impl<T: Solver<T1, T2>, T1: Display, T2: Display> Measurable for Measure<T, T1, 
     fn describe_part_two(&self) -> String {
         self.solver.describe_part_two()
     }
-    fn time_part_one(&self) -> Result<Duration> {
-        time_execution(|| self.solver.part_one())
+    fn time_part_one(&self, iter: u8) -> Result<Duration> {
+        time_execution(|| self.solver.part_one(), iter)
     }
-    fn time_part_two(&self) -> Result<Duration> {
-        time_execution(|| self.solver.part_two())
+    fn time_part_two(&self, iter: u8) -> Result<Duration> {
+        time_execution(|| self.solver.part_two(), iter)
     }
 }
 impl<T: 'static + Solver<T1, T2>, T1: 'static + Display, T2: 'static + Display> Measure<T, T1, T2> {
@@ -88,11 +88,14 @@ impl<T: 'static + Solver<T1, T2>, T1: 'static + Display, T2: 'static + Display> 
     }
 }
 
-fn time_execution<F: Fn() -> Result<T>, T>(f: F) -> Result<Duration> {
+fn time_execution<F: Fn() -> Result<T>, T>(f: F, iter: u8) -> Result<Duration> {
     let gag = Gag::stdout()?;
-    let now = Instant::now();
-    f()?;
-    let res = now.elapsed();
+    let mut tot = Duration::ZERO;
+    for _ in 0..iter {
+        let now = Instant::now();
+        f()?;
+        tot += now.elapsed();
+    }
     drop(gag);
-    Ok(res)
+    Ok(tot / iter.into())
 }

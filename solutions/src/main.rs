@@ -1,38 +1,80 @@
 extern crate anyhow;
 
 use anyhow::Result;
+use clap::{arg, command, Parser, Subcommand};
 use itertools::Itertools;
 use prettytable::{color, format::Alignment, row, Attr, Cell, Row, Table};
 use solver::{Measure, Solver};
-use std::env;
 
 mod days;
 mod input;
 mod solver;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Perf {
+        #[arg(short, long)]
+        fine: bool,
+        #[arg(short, long, default_value_t = 10)]
+        iterations: u8,
+    },
+}
+
 fn main() -> Result<()> {
-    if Some(String::from("perf")) == env::args().nth(1) {
-        return perf();
+    let cli = Cli::parse();
+    match cli.command {
+        Some(Commands::Perf { fine, iterations }) => perf(fine, iterations)?,
+        _ => solve()?,
     }
-    // days::day01::Solution::new().solve()?;
+    Ok(())
+}
+
+fn solve() -> Result<()> {
+    days::day01::Solution::new().solve()?;
     days::day02::Solution::new().solve()?;
     days::day03::Solution::new().solve()?;
     days::day04::Solution::new().solve()?;
     Ok(())
 }
 
-fn perf() -> Result<()> {
+fn perf(fine: bool, iterations: u8) -> Result<()> {
+    let fmt_func = match fine {
+        true => format_fine,
+        false => format_rough,
+    };
     let measures: Vec<_> = vec![
         Measure::get(days::day01::Solution::new()),
         Measure::get(days::day02::Solution::new()),
         Measure::get(days::day03::Solution::new()),
         Measure::get(days::day04::Solution::new()),
     ];
+    let count = measures.len();
+
+    println!("Generating performance statistics...");
+    println!("{count} solutions, {iterations} runs each.\n");
+
     let mut results = vec![];
-    for m in measures {
-        results.push((m.title(), m.describe_part_one(), m.time_part_one()?));
-        results.push((m.title(), m.describe_part_two(), m.time_part_two()?));
+    for (i, m) in measures.iter().enumerate() {
+        print!("\rProcessing... {}/{count}", i + 1);
+        results.push((
+            m.title(),
+            m.describe_part_one(),
+            m.time_part_one(iterations)?,
+        ));
+        results.push((
+            m.title(),
+            m.describe_part_two(),
+            m.time_part_two(iterations)?,
+        ));
     }
+    println!("\nDone.");
 
     // Get some rough stats
     let len = results.len();
@@ -69,8 +111,7 @@ fn perf() -> Result<()> {
             Cell::new(day),
             Cell::new(&title),
             Cell::new(part),
-            Cell::new(&format!("{:0.03}s", dur))
-                .with_style(Attr::ForegroundColor(get_quartile_color(dur))),
+            Cell::new(&fmt_func(&dur)).with_style(Attr::ForegroundColor(get_quartile_color(dur))),
         ]));
     }
 
@@ -80,25 +121,30 @@ fn perf() -> Result<()> {
         Cell::new_align("Total", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.03}s", total))
-            .with_style(Attr::ForegroundColor(get_quartile_color(total))),
+        Cell::new(&fmt_func(&total)).with_style(Attr::ForegroundColor(get_quartile_color(total))),
     ]));
     table.add_row(Row::new(vec![
         Cell::new_align("Average", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.03}s", mean))
-            .with_style(Attr::ForegroundColor(get_quartile_color(mean))),
+        Cell::new(&fmt_func(&mean)).with_style(Attr::ForegroundColor(get_quartile_color(mean))),
     ]));
     table.add_row(Row::new(vec![
         Cell::new_align("Median", Alignment::RIGHT)
             .with_style(Attr::Bold)
             .with_hspan(4),
-        Cell::new(&format!("{:0.03}s", median))
-            .with_style(Attr::ForegroundColor(get_quartile_color(median))),
+        Cell::new(&fmt_func(&median)).with_style(Attr::ForegroundColor(get_quartile_color(median))),
     ]));
 
     table.printstd();
 
     Ok(())
+}
+
+fn format_rough(dur: &f32) -> String {
+    format!("{dur:0.03}s")
+}
+
+fn format_fine(dur: &f32) -> String {
+    format!("{dur:0.06}s")
 }
