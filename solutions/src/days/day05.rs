@@ -1,4 +1,8 @@
-use std::str::FromStr;
+use std::{
+    str::FromStr,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use crate::solver::Solver;
 use anyhow::{anyhow, Result};
@@ -20,7 +24,9 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let almanac = self.input().get_as::<Almanac>()?;
+        let mapped = almanac.find_min_in_ranges();
+        Ok(mapped)
     }
 }
 
@@ -124,6 +130,32 @@ impl Almanac {
         }
         ret
     }
+
+    fn find_min_in_ranges(&self) -> usize {
+        let mins = Arc::new(Mutex::new(Vec::new()));
+        thread::scope(|s| {
+            // Seeds should always be in pairs
+            for (i, (&r_min, &r_count)) in self.seeds.iter().tuples().enumerate() {
+                let m = mins.clone();
+                s.spawn(move || {
+                    println!("    Thread {i} processing {r_count} seeds...");
+
+                    let mut local_min = usize::MAX;
+                    for seed in r_min..r_min + r_count {
+                        let mapped = self.map_seed(seed);
+                        if mapped < local_min {
+                            local_min = mapped;
+                        }
+                    }
+                    let mut results = m.lock().unwrap();
+                    results.push(local_min);
+                    println!("    Thread {i} done!");
+                });
+            }
+        });
+        let results = mins.lock().unwrap();
+        *results.iter().min().unwrap()
+    }
 }
 
 #[cfg(test)]
@@ -161,6 +193,24 @@ mod tests {
         let almanac = EXAMPLE_INPUT.parse::<Almanac>()?;
         let mapped = almanac.map_seeds();
         assert_eq!(&35, mapped.iter().min().unwrap());
+        Ok(())
+    }
+
+    #[test]
+    fn should_map_range() -> Result<()> {
+        let test = "seeds: 1 2 3 4\n\nseed-to-soil map:\n2 1 1\n\nsoil-to-whatever map:\n1 2 1";
+        let almanac = test.parse::<Almanac>()?;
+        let expected = 1;
+        let actual = almanac.find_min_in_ranges();
+        assert_eq!(expected, actual);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let almanac = EXAMPLE_INPUT.parse::<Almanac>()?;
+        let mapped = almanac.find_min_in_ranges();
+        assert_eq!(46, mapped);
         Ok(())
     }
 
