@@ -1,12 +1,7 @@
-use std::{
-    str::FromStr,
-    sync::{Arc, Mutex},
-    thread,
-};
-
 use crate::solver::Solver;
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
+use std::str::FromStr;
 
 pub struct Solution;
 impl Solver<usize, usize> for Solution {
@@ -25,7 +20,7 @@ impl Solver<usize, usize> for Solution {
 
     fn part_two(&self) -> Result<usize> {
         let almanac = self.input().get_as::<Almanac>()?;
-        let mapped = almanac.find_min_in_ranges();
+        let mapped = almanac.find_min_faster();
         Ok(mapped)
     }
 }
@@ -69,6 +64,11 @@ impl Mapping {
             true => Some(self.dest_min + (n - self.source_min)),
             false => None,
         }
+    }
+
+    fn overlaps(&self, range: &(usize, usize)) -> bool {
+        range.0 <= self.source_min && range.1 >= self.source_min
+            || range.0 <= self.source_max && range.0 >= self.source_min
     }
 }
 
@@ -131,30 +131,57 @@ impl Almanac {
         ret
     }
 
-    fn find_min_in_ranges(&self) -> usize {
-        let mins = Arc::new(Mutex::new(Vec::new()));
-        thread::scope(|s| {
-            // Seeds should always be in pairs
-            for (i, (&r_min, &r_count)) in self.seeds.iter().tuples().enumerate() {
-                let m = mins.clone();
-                s.spawn(move || {
-                    println!("    Thread {i} processing {r_count} seeds...");
-
-                    let mut local_min = usize::MAX;
-                    for seed in r_min..r_min + r_count {
-                        let mapped = self.map_seed(seed);
-                        if mapped < local_min {
-                            local_min = mapped;
+    fn find_min_faster(&self) -> usize {
+        let seed_ranges: Vec<(&usize, &usize)> = self.seeds.iter().tuples().collect_vec();
+        let mut final_ranges: Vec<(usize, usize)> = vec![];
+        for (&seed_min, &seed_count) in seed_ranges {
+            let mut ranges = vec![(seed_min, seed_min + seed_count)];
+            for group in &self.mappings {
+                let mut mapped = vec![];
+                let mut min_mapped = usize::MAX;
+                let mut max_mapped = 0;
+                for &(min, max) in &ranges {
+                    let mut was_mapped = false;
+                    for mapping in group {
+                        if mapping.overlaps(&(min, max)) {
+                            was_mapped = true;
+                            let start = if min < mapping.source_min {
+                                mapping.dest_min
+                            } else {
+                                mapping.dest_min + (min - mapping.source_min)
+                            };
+                            let end = if max > mapping.source_max {
+                                mapping.dest_max
+                            } else {
+                                mapping.dest_min + (max - mapping.source_min)
+                            };
+                            mapped.push((start, end));
+                            if min_mapped > mapping.source_min {
+                                min_mapped = mapping.source_min;
+                            }
+                            if max_mapped < mapping.source_max {
+                                max_mapped = mapping.source_max;
+                            }
                         }
                     }
-                    let mut results = m.lock().unwrap();
-                    results.push(local_min);
-                    println!("    Thread {i} done!");
-                });
+                    // remainders
+                    if min_mapped < usize::MAX && min < min_mapped {
+                        mapped.push((min, min_mapped - 1));
+                    }
+                    if max_mapped > 0 && max > max_mapped {
+                        mapped.push((max_mapped + 1, max));
+                    }
+                    if !was_mapped {
+                        mapped.push((min, max));
+                    }
+                }
+                ranges.clear();
+                ranges.append(&mut mapped);
+                mapped.clear();
             }
-        });
-        let results = mins.lock().unwrap();
-        *results.iter().min().unwrap()
+            final_ranges.append(&mut ranges);
+        }
+        final_ranges.iter().map(|range| range.0).min().unwrap()
     }
 }
 
@@ -201,7 +228,7 @@ mod tests {
         let test = "seeds: 1 2 3 4\n\nseed-to-soil map:\n2 1 1\n\nsoil-to-whatever map:\n1 2 1";
         let almanac = test.parse::<Almanac>()?;
         let expected = 1;
-        let actual = almanac.find_min_in_ranges();
+        let actual = almanac.find_min_faster();
         assert_eq!(expected, actual);
         Ok(())
     }
@@ -209,7 +236,7 @@ mod tests {
     #[test]
     fn should_solve_part2() -> Result<()> {
         let almanac = EXAMPLE_INPUT.parse::<Almanac>()?;
-        let mapped = almanac.find_min_in_ranges();
+        let mapped = almanac.find_min_faster();
         assert_eq!(46, mapped);
         Ok(())
     }
