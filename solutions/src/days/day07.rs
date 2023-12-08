@@ -19,7 +19,12 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let lines = self.input().get_lines()?;
+        let hands = lines
+            .iter()
+            .filter_map(|l| get_wild_hand(l, 11).ok())
+            .collect_vec();
+        Ok(get_winnings(&hands))
     }
 }
 
@@ -46,6 +51,7 @@ fn card_from(c: &char) -> Result<u8> {
 struct Hand {
     cards: Vec<u8>,
     bid: usize,
+    wild: Option<u8>,
 }
 impl FromStr for Hand {
     type Err = anyhow::Error;
@@ -60,38 +66,71 @@ impl FromStr for Hand {
             .filter_map(|c| card_from(&c).ok())
             .collect();
         let bid = halves[1].parse()?;
-        Ok(Hand { cards, bid })
+        Ok(Hand {
+            cards,
+            bid,
+            wild: None,
+        })
     }
 }
 impl Hand {
     fn score(&self) -> u8 {
         let mut counts: HashMap<u8, u8> = HashMap::new();
+        let mut wild_cards = 0;
         for &c in &self.cards {
-            *counts.entry(c).or_insert(0) += 1;
+            if let Some(w) = self.wild {
+                if c == w {
+                    wild_cards += 1;
+                } else {
+                    *counts.entry(c).or_insert(0) += 1;
+                }
+            } else {
+                // Someday we'll be able to add other expressions to if-let's
+                *counts.entry(c).or_insert(0) += 1;
+            }
         }
         let mut sets: HashMap<u8, u8> = HashMap::new();
+        let score;
         for (_, &v) in counts.iter() {
             *sets.entry(v).or_insert(0) += 1;
         }
         if sets.contains_key(&5) {
-            return 7;
-        }
-        if sets.contains_key(&4) {
-            return 6;
-        }
-        if sets.contains_key(&3) {
+            score = 7;
+        } else if sets.contains_key(&4) {
+            score = 6;
+        } else if sets.contains_key(&3) {
             if sets.contains_key(&2) {
-                return 5;
+                score = 5;
+            } else {
+                score = 4;
             }
-            return 4;
-        }
-        if sets.contains_key(&2) {
+        } else if sets.contains_key(&2) {
             if sets[&2] == 2 {
-                return 3;
+                score = 3;
+            } else {
+                score = 2;
             }
-            return 2;
+        } else {
+            score = 1;
         }
-        return 1;
+        match self.wild {
+            Some(_) => match (score, wild_cards) {
+                (1, 5) => 7,
+                (1, 4) => 7,
+                (1, 3) => 6,
+                (1, 2) => 4,
+                (1, 1) => 2,
+                (2, 3) => 7,
+                (2, 2) => 6,
+                (2, 1) => 4,
+                (3, 1) => 5,
+                (4, 2) => 7,
+                (4, 1) => 6,
+                (6, 1) => 7,
+                _ => score,
+            },
+            None => score,
+        }
     }
 }
 impl PartialOrd for Hand {
@@ -108,15 +147,41 @@ impl Ord for Hand {
             return Ordering::Less;
         } else {
             for (a, b) in self.cards.iter().zip(other.cards.iter()) {
-                if a > b {
+                let a1 = match self.wild {
+                    Some(w) => {
+                        if a == &w {
+                            &0
+                        } else {
+                            &a
+                        }
+                    }
+                    None => a,
+                };
+                let b1 = match other.wild {
+                    Some(w) => {
+                        if b == &w {
+                            &0
+                        } else {
+                            &b
+                        }
+                    }
+                    None => b,
+                };
+                if a1 > b1 {
                     return Ordering::Greater;
-                } else if a < b {
+                } else if a1 < b1 {
                     return Ordering::Less;
                 }
             }
         }
         Ordering::Equal
     }
+}
+
+fn get_wild_hand(s: &str, wild_card: u8) -> Result<Hand> {
+    let mut hand = s.parse::<Hand>()?;
+    hand.wild = Some(wild_card);
+    Ok(hand)
 }
 
 fn get_winnings(hands: &[Hand]) -> usize {
@@ -194,6 +259,24 @@ QQQJA 483";
             .collect_vec();
         let winnings = get_winnings(&hands);
         assert_eq!(6440, winnings);
+        Ok(())
+    }
+
+    #[test]
+    fn should_score_wild() -> Result<()> {
+        let test = get_wild_hand("2234J 1", 11)?;
+        assert_eq!(4, test.score());
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let hands = EXAMPLE_INPUT
+            .lines()
+            .filter_map(|l| get_wild_hand(l, 11).ok())
+            .collect_vec();
+        let winnings = get_winnings(&hands);
+        assert_eq!(5905, winnings);
         Ok(())
     }
 }
