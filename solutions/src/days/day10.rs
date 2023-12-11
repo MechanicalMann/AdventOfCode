@@ -21,7 +21,8 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let maze = self.input().get_as::<Maze>()?;
+        Ok(maze.get_interior_tiles())
     }
 }
 
@@ -126,6 +127,8 @@ impl TryFrom<char> for Tile {
 struct Maze {
     tiles: HashMap<Point, Tile>,
     start: Point,
+    width: usize,
+    height: usize,
 }
 impl FromStr for Maze {
     type Err = anyhow::Error;
@@ -133,8 +136,12 @@ impl FromStr for Maze {
     fn from_str(s: &str) -> Result<Self> {
         let mut tiles = HashMap::new();
         let mut start = Point::new(0, 0);
+        let mut width = 0;
+        let mut height = 0;
         for (y, line) in s.lines().enumerate() {
+            height = y + 1;
             for (x, c) in line.chars().enumerate() {
+                width = x + 1;
                 let tile = Tile::try_from(c)?;
                 let coord = Point::new(x as isize, y as isize);
                 tiles.insert(coord, tile);
@@ -143,11 +150,16 @@ impl FromStr for Maze {
                 }
             }
         }
-        Ok(Maze { tiles, start })
+        Ok(Maze {
+            tiles,
+            start,
+            width,
+            height,
+        })
     }
 }
 impl Maze {
-    fn get_max_depth(&self) -> usize {
+    fn get_loop_and_depth(&self) -> (usize, HashSet<Point>) {
         let mut depth = 0;
         let mut seen: HashSet<Point> = HashSet::new();
         let mut positions = vec![];
@@ -185,7 +197,70 @@ impl Maze {
             positions.clear();
             positions.append(&mut new_pos);
         }
-        depth
+        (depth, seen)
+    }
+
+    fn get_max_depth(&self) -> usize {
+        self.get_loop_and_depth().0
+    }
+
+    fn get_interior_tiles(&self) -> usize {
+        let the_loop = self.get_loop_and_depth().1;
+        let mut top_x: HashMap<usize, usize> = HashMap::new();
+        let mut left_y: HashMap<usize, usize> = HashMap::new();
+        let mut bot_x: HashMap<usize, usize> = HashMap::new();
+        let mut right_y: HashMap<usize, usize> = HashMap::new();
+
+        let mut potentials: HashMap<Point, (usize, usize, usize, usize)> = HashMap::new();
+
+        for ya in 0..self.height {
+            let yb = self.height - 1 - ya;
+            let cyl = left_y.entry(ya).or_insert(0);
+            let cyr = right_y.entry(yb).or_insert(0);
+            for xa in 0..self.width {
+                let xb = self.width - 1 - xa;
+                let cxt = top_x.entry(xa).or_insert(0);
+                let cxb = bot_x.entry(xb).or_insert(0);
+
+                let pos_a = Point::new(xa as isize, ya as isize);
+                if the_loop.contains(&pos_a) {
+                    let tile = self.tiles.get(&pos_a).unwrap();
+                    match tile {
+                        Tile::Pipe(p) => match p {
+                            Pipe::Horizontal => *cxt += 1,
+                            Pipe::Vertical => *cyl += 1,
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                } else {
+                    let counts = potentials.entry(pos_a).or_insert((0, 0, 0, 0));
+                    counts.0 = *cxt;
+                    counts.1 = *cyl;
+                }
+
+                let pos_b = Point::new(xb as isize, yb as isize);
+                if the_loop.contains(&pos_b) {
+                    match self.tiles.get(&pos_b).unwrap() {
+                        Tile::Pipe(p) => match p {
+                            Pipe::Horizontal => *cxb += 1,
+                            Pipe::Vertical => *cyr += 1,
+                            _ => (),
+                        },
+                        _ => (),
+                    }
+                } else {
+                    let counts = potentials.entry(pos_b).or_insert((0, 0, 0, 0));
+                    counts.2 = *cxb;
+                    counts.3 = *cyr;
+                }
+            }
+        }
+        potentials
+            .values()
+            .filter(|(a, b, c, d)| a > &0 && b > &0 && c > &0 && d > &0)
+            .filter(|(a, b, c, d)| a % 2 == 1 || b % 2 == 1 || c % 2 == 1 || d % 2 == 1)
+            .count()
     }
 }
 
@@ -193,11 +268,20 @@ impl Maze {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT: &str = "..F7.
+    const EXAMPLE_INPUT_PART1: &str = "..F7.
 .FJ|.
 SJ.L7
 |F--J
 LJ...";
+    const EXAMPLE_INPUT_PART2: &str = "...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........";
 
     #[test]
     fn should_parse() -> Result<()> {
@@ -222,8 +306,15 @@ LJ...";
 
     #[test]
     fn should_solve_part1() -> Result<()> {
-        let maze = EXAMPLE_INPUT.parse::<Maze>()?;
+        let maze = EXAMPLE_INPUT_PART1.parse::<Maze>()?;
         assert_eq!(8, maze.get_max_depth());
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let maze = EXAMPLE_INPUT_PART2.parse::<Maze>()?;
+        assert_eq!(4, maze.get_interior_tiles());
         Ok(())
     }
 }
