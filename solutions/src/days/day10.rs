@@ -124,6 +124,14 @@ impl TryFrom<char> for Tile {
     }
 }
 
+struct PipeLoop {
+    the_loop: HashSet<Point>,
+    depth: usize,
+    min: (isize, isize),
+    max: (isize, isize),
+    start_pipe: Pipe,
+}
+
 struct Maze {
     tiles: HashMap<Point, Tile>,
     start: Point,
@@ -159,20 +167,39 @@ impl FromStr for Maze {
     }
 }
 impl Maze {
-    fn get_loop_and_depth(&self) -> (usize, HashSet<Point>) {
+    fn get_loop(&self) -> PipeLoop {
         let mut depth = 0;
-        let mut seen: HashSet<Point> = HashSet::new();
+        let mut the_loop: HashSet<Point> = HashSet::new();
         let mut positions = vec![];
+        let mut offsets = vec![];
+        let mut min_x = self.start.x;
+        let mut min_y = self.start.y;
+        let mut max_x = self.start.x;
+        let mut max_y = self.start.y;
+
         // Get starting branches
+        the_loop.insert(self.start);
         for offset in CARDINALS {
             let test = self.start + offset;
             if let Some(Tile::Pipe(p)) = self.tiles.get(&test) {
                 let (a, b) = p.get_connecting(test);
                 if a == self.start || b == self.start {
                     positions.push((test, *p));
+                    offsets.push(offset);
                 }
             }
         }
+
+        let start_pipe = match (offsets[0], offsets[1]) {
+            (Point { x: 0, y: -1 }, Point { x: 0, y: 1 }) => Pipe::Vertical,
+            (Point { x: 0, y: -1 }, Point { x: -1, y: 0 }) => Pipe::BendNW,
+            (Point { x: 0, y: -1 }, Point { x: 1, y: 0 }) => Pipe::BendNE,
+            (Point { x: 1, y: 0 }, Point { x: 0, y: 1 }) => Pipe::BendSE,
+            (Point { x: 1, y: 0 }, Point { x: -1, y: 0 }) => Pipe::Horizontal,
+            (Point { x: 0, y: 1 }, Point { x: -1, y: 0 }) => Pipe::BendSW,
+            _ => Pipe::Horizontal,
+        };
+
         if positions.len() != 2 {
             panic!("Starting point must have two connecting pipes!");
         }
@@ -180,10 +207,22 @@ impl Maze {
             depth += 1;
             let mut new_pos = vec![];
             for &(pos, pipe) in &positions {
-                seen.insert(pos);
+                the_loop.insert(pos);
+                if pos.x < min_x {
+                    min_x = pos.x;
+                }
+                if pos.y < min_y {
+                    min_y = pos.y;
+                }
+                if pos.x > max_x {
+                    max_x = pos.x;
+                }
+                if pos.y > max_y {
+                    max_y = pos.y;
+                }
                 let (a, b) = pipe.get_connecting(pos);
                 for next in [a, b] {
-                    if seen.contains(&next) {
+                    if the_loop.contains(&next) {
                         continue;
                     }
                     if let Some(Tile::Pipe(p)) = self.tiles.get(&next) {
@@ -197,70 +236,54 @@ impl Maze {
             positions.clear();
             positions.append(&mut new_pos);
         }
-        (depth, seen)
+        PipeLoop {
+            the_loop,
+            depth,
+            min: (min_x, min_y),
+            max: (max_x, max_y),
+            start_pipe,
+        }
     }
 
     fn get_max_depth(&self) -> usize {
-        self.get_loop_and_depth().0
+        self.get_loop().depth
     }
 
     fn get_interior_tiles(&self) -> usize {
-        let the_loop = self.get_loop_and_depth().1;
-        let mut top_x: HashMap<usize, usize> = HashMap::new();
-        let mut left_y: HashMap<usize, usize> = HashMap::new();
-        let mut bot_x: HashMap<usize, usize> = HashMap::new();
-        let mut right_y: HashMap<usize, usize> = HashMap::new();
+        let PipeLoop {
+            depth: _,
+            the_loop,
+            min: (min_x, min_y),
+            max: (max_x, max_y),
+            start_pipe,
+        } = self.get_loop();
 
-        let mut potentials: HashMap<Point, (usize, usize, usize, usize)> = HashMap::new();
-
-        for ya in 0..self.height {
-            let yb = self.height - 1 - ya;
-            let cyl = left_y.entry(ya).or_insert(0);
-            let cyr = right_y.entry(yb).or_insert(0);
-            for xa in 0..self.width {
-                let xb = self.width - 1 - xa;
-                let cxt = top_x.entry(xa).or_insert(0);
-                let cxb = bot_x.entry(xb).or_insert(0);
-
-                let pos_a = Point::new(xa as isize, ya as isize);
-                if the_loop.contains(&pos_a) {
-                    let tile = self.tiles.get(&pos_a).unwrap();
-                    match tile {
-                        Tile::Pipe(p) => match p {
-                            Pipe::Horizontal => *cxt += 1,
-                            Pipe::Vertical => *cyl += 1,
-                            _ => (),
-                        },
+        let mut interior = 0;
+        for y in 0..(self.height as isize) {
+            let mut out = true;
+            for x in 0..(self.width as isize) {
+                let pos = Point::new(x, y);
+                if the_loop.contains(&pos) {
+                    let pipe = if pos == self.start {
+                        start_pipe
+                    } else {
+                        // we need to treat the starting tile as its equivalent pipe to count correctly
+                        match self.tiles.get(&pos) {
+                            Some(&Tile::Pipe(p)) => p,
+                            _ => panic!("wtf"),
+                        }
+                    };
+                    match pipe {
+                        // only count connections from above to elsewhere (below/side)
+                        Pipe::Vertical | Pipe::BendNE | Pipe::BendNW => out = !out,
                         _ => (),
                     }
-                } else {
-                    let counts = potentials.entry(pos_a).or_insert((0, 0, 0, 0));
-                    counts.0 = *cxt;
-                    counts.1 = *cyl;
-                }
-
-                let pos_b = Point::new(xb as isize, yb as isize);
-                if the_loop.contains(&pos_b) {
-                    match self.tiles.get(&pos_b).unwrap() {
-                        Tile::Pipe(p) => match p {
-                            Pipe::Horizontal => *cxb += 1,
-                            Pipe::Vertical => *cyr += 1,
-                            _ => (),
-                        },
-                        _ => (),
-                    }
-                } else {
-                    let counts = potentials.entry(pos_b).or_insert((0, 0, 0, 0));
-                    counts.2 = *cxb;
-                    counts.3 = *cyr;
+                } else if !out && min_x < x && x < max_x && min_y < y && y < max_y {
+                    interior += 1;
                 }
             }
         }
-        potentials
-            .values()
-            .filter(|(a, b, c, d)| a > &0 && b > &0 && c > &0 && d > &0)
-            .filter(|(a, b, c, d)| a % 2 == 1 || b % 2 == 1 || c % 2 == 1 || d % 2 == 1)
-            .count()
+        interior
     }
 }
 
@@ -273,15 +296,16 @@ mod tests {
 SJ.L7
 |F--J
 LJ...";
-    const EXAMPLE_INPUT_PART2: &str = "...........
-.S-------7.
-.|F-----7|.
-.||.....||.
-.||.....||.
-.|L-7.F-J|.
-.|..|.|..|.
-.L--J.L--J.
-...........";
+    const EXAMPLE_INPUT_PART2: &str = "FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L";
 
     #[test]
     fn should_parse() -> Result<()> {
@@ -314,7 +338,7 @@ LJ...";
     #[test]
     fn should_solve_part2() -> Result<()> {
         let maze = EXAMPLE_INPUT_PART2.parse::<Maze>()?;
-        assert_eq!(4, maze.get_interior_tiles());
+        assert_eq!(10, maze.get_interior_tiles());
         Ok(())
     }
 }
