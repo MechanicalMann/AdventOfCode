@@ -6,4 +6,5 @@ next_day=$((${last_day#0} + 1))
 echo "Creating files for day $next_day"
 touch ./inputs/day$next_day.txt
 cd ./solutions/src/days
-tail -n +2 day00.rs > "day$next_day.rs"
+tail -n +2 day00.rs | sed "s/0;/$next_day;/" > "day$next_day.rs"
+echo "pub mod day$next_day;" >> mod.rs
