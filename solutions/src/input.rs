@@ -28,6 +28,13 @@ impl AdventInput {
         T::from_str(&read)
     }
 
+    pub fn get_csv(&self) -> Result<Vec<String>> {
+        Ok(fs::read_to_string(&self.file)?
+            .split(',')
+            .map(|s| s.to_owned())
+            .collect())
+    }
+
     pub fn get_csv_as<T>(&self) -> Result<Vec<T>>
     where
         T: FromStr,
