@@ -6,6 +6,7 @@ use itertools::Itertools;
 use prettytable::{color, format::Alignment, row, Attr, Cell, Row, Table};
 use solver::{Measure, Solver};
 
+mod common;
 mod days;
 mod input;
 mod solver;

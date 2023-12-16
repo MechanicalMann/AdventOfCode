@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use crate::solver::Solver;
+use crate::{common::Point, solver::Solver};
 use anyhow::{anyhow, Result};
 
 pub struct Solution;
@@ -27,17 +27,6 @@ impl Solver<usize, usize> for Solution {
 enum Orientation {
     Horizontal,
     Vertical,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Point {
-    x: usize,
-    y: usize,
-}
-impl Point {
-    fn new(x: usize, y: usize) -> Self {
-        Point { x, y }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
