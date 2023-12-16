@@ -14,11 +14,12 @@ impl Solver<usize, usize> for Solution {
 
     fn part_one(&self) -> Result<usize> {
         let patches = self.input().get_grouped_as::<Patch>()?;
-        Ok(summarize(&patches))
+        Ok(summarize(&patches, 0))
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let patches = self.input().get_grouped_as::<Patch>()?;
+        Ok(summarize(&patches, 1))
     }
 }
 
@@ -84,28 +85,29 @@ impl FromStr for Patch {
     }
 }
 impl Patch {
-    fn get_reflection(&self) -> Option<(Orientation, usize)> {
+    fn get_reflection(&self, tolerance: usize) -> Option<(Orientation, usize)> {
         // Vertical reflection check
-        if let Some(x) = reflection_check(self, self.max_x, Self::compare_cols) {
+        if let Some(x) = reflection_check(self, self.max_x, Self::compare_cols, tolerance) {
             return Some((Orientation::Vertical, x));
         }
 
         // Horizontal reflection check
-        if let Some(y) = reflection_check(self, self.max_y, Self::compare_rows) {
+        if let Some(y) = reflection_check(self, self.max_y, Self::compare_rows, tolerance) {
             return Some((Orientation::Horizontal, y));
         }
         None
     }
 
-    fn compare_cols(&self, xl: usize, xr: usize) -> bool {
+    fn compare_cols(&self, xl: usize, xr: usize) -> usize {
         self.compare_ranges(xl, xr, true)
     }
 
-    fn compare_rows(&self, yt: usize, yb: usize) -> bool {
+    fn compare_rows(&self, yt: usize, yb: usize) -> usize {
         self.compare_ranges(yt, yb, false)
     }
 
-    fn compare_ranges(&self, a: usize, b: usize, vertical: bool) -> bool {
+    fn compare_ranges(&self, a: usize, b: usize, vertical: bool) -> usize {
+        let mut differences = 0;
         let get_points = |c: usize| match vertical {
             true => (Point::new(a, c), Point::new(b, c)),
             false => (Point::new(c, a), Point::new(c, b)),
@@ -119,24 +121,27 @@ impl Patch {
             let left = self.points.get(&pos_a).unwrap();
             let right = self.points.get(&pos_b).unwrap();
             if left != right {
-                return false;
+                differences += 1;
             }
         }
-        true
+        differences
     }
 }
 
 fn reflection_check(
     patch: &Patch,
     max: usize,
-    comparator: fn(&Patch, usize, usize) -> bool,
+    comparator: fn(&Patch, usize, usize) -> usize,
+    tolerance: usize,
 ) -> Option<usize> {
     let mut reflection: Option<usize> = None;
     let comp = |a, b| comparator(patch, a, b);
     for a in 0..max {
         let b = a + 1;
+        let mut differences = 0;
         let mut reflected = true;
-        if !comp(a, b) {
+        differences += comp(a, b);
+        if differences > tolerance {
             reflected = false;
         }
         if reflected {
@@ -147,12 +152,13 @@ fn reflection_check(
                 }
                 exa -= 1;
                 exb += 1;
-                if !comp(exa, exb) {
+                differences += comp(exa, exb);
+                if differences > tolerance {
                     reflected = false;
                     break;
                 }
             }
-            if reflected {
+            if reflected && differences == tolerance {
                 reflection = Some(a + 1);
                 break;
             }
@@ -161,10 +167,10 @@ fn reflection_check(
     reflection
 }
 
-fn summarize(patches: &[Patch]) -> usize {
+fn summarize(patches: &[Patch], tolerance: usize) -> usize {
     patches
         .iter()
-        .filter_map(|p| p.get_reflection())
+        .filter_map(|p| p.get_reflection(tolerance))
         .map(|(o, v)| match o {
             Orientation::Horizontal => 100 * v,
             Orientation::Vertical => v,
@@ -209,11 +215,11 @@ mod tests {
     #[test]
     fn should_get_reflection() -> Result<()> {
         let vertical = "#.##.\n..##.".parse::<Patch>()?;
-        assert_eq!(Some((Orientation::Vertical, 3)), vertical.get_reflection());
+        assert_eq!(Some((Orientation::Vertical, 3)), vertical.get_reflection(0));
         let horizontal = "#.#.\n###.\n###.\n#.#.".parse::<Patch>()?;
         assert_eq!(
             Some((Orientation::Horizontal, 2)),
-            horizontal.get_reflection()
+            horizontal.get_reflection(0)
         );
         Ok(())
     }
@@ -224,8 +230,19 @@ mod tests {
             .split("\n\n")
             .filter_map(|s| s.parse::<Patch>().ok())
             .collect_vec();
-        let summary = summarize(&patches);
+        let summary = summarize(&patches, 0);
         assert_eq!(405, summary);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let patches = EXAMPLE_INPUT
+            .split("\n\n")
+            .filter_map(|s| s.parse::<Patch>().ok())
+            .collect_vec();
+        let summary = summarize(&patches, 1);
+        assert_eq!(400, summary);
         Ok(())
     }
 }
