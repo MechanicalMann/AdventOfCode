@@ -16,3 +16,5 @@ phf = "0.11.2"
 phf_macros = "0.11.2"
 pcre2 = "0.2.6"
 clap = { version = "4.4.11", features = ["derive"]}
+impl_ops = "0.1.1"
+colored = "2.1.0"
