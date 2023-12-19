@@ -20,20 +20,18 @@ impl Solver<usize, usize> for Solution {
 
     fn part_one(&self) -> Result<usize> {
         let map = self.input().get_as::<CityMap>()?;
-        map.find_path(
-            Point::new(0, 0),
-            Point::new(map.max_x, map.max_y),
-            Direction::Down,
-        )
+        map.find_crucible_path()
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let map = self.input().get_as::<CityMap>()?;
+        map.find_ultra_crucible_path()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 enum Direction {
+    Unknown,
     Down,
     Right,
     Left,
@@ -46,6 +44,7 @@ impl Direction {
             Direction::Up => Direction::Down,
             Direction::Right => Direction::Left,
             Direction::Left => Direction::Right,
+            Direction::Unknown => Direction::Unknown,
         }
     }
 }
@@ -83,16 +82,43 @@ impl FromStr for CityMap {
     }
 }
 impl CityMap {
-    fn find_path(&self, start: Point, end: Point, dir: Direction) -> Result<usize> {
+    fn find_crucible_path(&self) -> Result<usize> {
+        self.find_path(
+            Point::new(0, 0),
+            Point::new(self.max_x, self.max_y),
+            Direction::Unknown,
+            0,
+            3,
+        )
+    }
+
+    fn find_ultra_crucible_path(&self) -> Result<usize> {
+        self.find_path(
+            Point::new(0, 0),
+            Point::new(self.max_x, self.max_y),
+            Direction::Unknown,
+            4,
+            10,
+        )
+    }
+
+    fn find_path(
+        &self,
+        start: Point,
+        end: Point,
+        dir: Direction,
+        min_steps: usize,
+        max_steps: usize,
+    ) -> Result<usize> {
         let mut frontier = BinaryHeap::from([Reverse((0, 0, dir, start))]);
         let mut visited: HashMap<(Point, Direction, usize), usize> = HashMap::new();
 
         while let Some(Reverse((cur_loss, cur_steps, cur_dir, cur_pos))) = frontier.pop() {
-            if cur_pos == end {
+            if cur_pos == end && cur_steps >= min_steps {
                 return Ok(cur_loss);
             }
             for (next, next_loss, next_dir, next_steps) in
-                self.get_next_nodes(cur_pos, cur_loss, cur_dir, cur_steps)
+                self.get_next_nodes(cur_pos, cur_loss, cur_dir, cur_steps, min_steps, max_steps)
             {
                 if !visited.contains_key(&(next, next_dir, next_steps)) {
                     frontier.push(Reverse((next_loss, next_steps, next_dir, next)));
@@ -109,13 +135,18 @@ impl CityMap {
         loss: usize,
         dir: Direction,
         steps: usize,
+        min_steps: usize,
+        max_steps: usize,
     ) -> Vec<(Point, usize, Direction, usize)> {
         let mut ret = vec![];
         for (offset, next_direction) in ADJACENTS {
             if next_direction == dir.opposite() {
                 continue;
             }
-            if next_direction == dir && steps == 3 {
+            if next_direction == dir && steps == max_steps {
+                continue;
+            }
+            if dir != Direction::Unknown && next_direction != dir && steps < min_steps {
                 continue;
             }
             let next = pos + offset;
@@ -167,7 +198,7 @@ mod tests {
     #[test]
     fn should_navigate() -> Result<()> {
         let test = "14999\n23111\n99991".parse::<CityMap>()?;
-        let heat_loss = test.find_path(Point::new(0, 0), Point::new(4, 2), Direction::Down)?;
+        let heat_loss = test.find_crucible_path()?;
         assert_eq!(11, heat_loss);
         Ok(())
     }
@@ -175,12 +206,16 @@ mod tests {
     #[test]
     fn should_solve_part1() -> Result<()> {
         let city = EXAMPLE_INPUT.parse::<CityMap>()?;
-        let heat_loss = city.find_path(
-            Point::new(0, 0),
-            Point::new(city.max_x, city.max_y),
-            Direction::Right,
-        )?;
+        let heat_loss = city.find_crucible_path()?;
         assert_eq!(102, heat_loss);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let city = EXAMPLE_INPUT.parse::<CityMap>()?;
+        let heat_loss = city.find_ultra_crucible_path()?;
+        assert_eq!(94, heat_loss);
         Ok(())
     }
 }
