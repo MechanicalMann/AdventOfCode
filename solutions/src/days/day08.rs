@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use crate::solver::Solver;
+use crate::{common::lcm, solver::Solver};
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -144,26 +144,6 @@ impl Map {
         }
         lcm(&dists)
     }
-}
-
-// Still vaguely wondering why these algos aren't in the standard lib
-fn gcd(a: usize, b: usize) -> usize {
-    if b == 0 {
-        a
-    } else {
-        gcd(b, a % b)
-    }
-}
-fn lcm(input: &[usize]) -> usize {
-    if input.len() == 0 {
-        return 0;
-    }
-    if input.len() == 1 {
-        return input[0];
-    }
-    let a = input[0];
-    let b = lcm(&input[1..]);
-    a * b / gcd(a, b)
 }
 
 #[cfg(test)]
