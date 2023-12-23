@@ -7,7 +7,7 @@ use itertools::Itertools;
 pub struct Solution;
 impl Solver<usize, usize> for Solution {
     const DAY: u8 = 19;
-    const TITLE: &'static str = "UNKNOWN";
+    const TITLE: &'static str = "Aplenty";
 
     fn new() -> Self {
         Solution {}
@@ -19,7 +19,8 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let system = self.input().get_as::<System>()?;
+        Ok(system.get_possible_combinations())
     }
 }
 
@@ -236,6 +237,106 @@ impl System {
         let accepted = self.run();
         accepted.iter().map(|a| a.get_total_rating()).sum()
     }
+
+    fn get_accepted_ranges(
+        &self,
+        ranges: PartRanges,
+        op: &Operation,
+    ) -> (Vec<PartRanges>, Option<PartRanges>) {
+        let mut accepted = vec![];
+        let mut next_range = ranges;
+        let mut remainder: Option<PartRanges> = None;
+        let next = match op {
+            Operation::Compare(rating, cmp, amt, dest) => {
+                let mut rem = ranges;
+                let (nr, rr) = match rating {
+                    Rating::X => (&mut next_range.x, &mut rem.x),
+                    Rating::M => (&mut next_range.m, &mut rem.m),
+                    Rating::A => (&mut next_range.a, &mut rem.a),
+                    Rating::S => (&mut next_range.s, &mut rem.s),
+                };
+                match cmp {
+                    Operator::LT => {
+                        if nr.max > *amt {
+                            nr.max = *amt - 1;
+                            rr.min = *amt;
+                        }
+                    }
+                    Operator::GT => {
+                        if nr.min < *amt {
+                            nr.min = *amt + 1;
+                            rr.max = *amt;
+                        }
+                    }
+                }
+                remainder = Some(rem);
+                dest
+            }
+            Operation::Send(dest) => dest,
+        };
+        match next {
+            Destination::Accepted => accepted.push(next_range),
+            Destination::Rejected => (),
+            Destination::Workflow(key) => {
+                let workflow = self.workflows.get(key).unwrap();
+                let mut inner_range = next_range;
+                for wf_op in &workflow.operations {
+                    let (acc, rem) = self.get_accepted_ranges(inner_range, wf_op);
+                    accepted.extend(acc);
+                    // Cary forward the remainder
+                    if let Some(r) = rem {
+                        inner_range = r;
+                    }
+                }
+            }
+        }
+        (accepted, remainder)
+    }
+
+    fn get_possible_combinations(&self) -> usize {
+        let (ranges, _) = self.get_accepted_ranges(
+            PartRanges::new(),
+            &Operation::Send(Destination::Workflow(self.start.clone())),
+        );
+        ranges.iter().map(|r| r.combinations()).sum()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PartRanges {
+    x: Range,
+    m: Range,
+    a: Range,
+    s: Range,
+}
+impl PartRanges {
+    fn new() -> Self {
+        Self {
+            x: Range::new(),
+            m: Range::new(),
+            a: Range::new(),
+            s: Range::new(),
+        }
+    }
+
+    fn combinations(&self) -> usize {
+        self.x.count() * self.m.count() * self.a.count() * self.s.count()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Range {
+    min: usize,
+    max: usize,
+}
+impl Range {
+    fn new() -> Self {
+        Range { min: 1, max: 4000 }
+    }
+
+    fn count(&self) -> usize {
+        self.max - self.min + 1
+    }
 }
 
 #[cfg(test)]
@@ -302,6 +403,15 @@ hdj{m>838:A,pv}
         let system = EXAMPLE_INPUT.parse::<System>()?;
         let rating = system.get_total_rating();
         assert_eq!(19114, rating);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        // Yeah, this was just a little too complicated to come up with an intermediate test
+        let system = EXAMPLE_INPUT.parse::<System>()?;
+        let combinations = system.get_possible_combinations();
+        assert_eq!(167409079868000, combinations);
         Ok(())
     }
 }
