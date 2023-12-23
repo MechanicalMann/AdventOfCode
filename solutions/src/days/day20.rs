@@ -3,7 +3,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::solver::Solver;
+use crate::{common::lcm, solver::Solver};
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 
@@ -23,7 +23,8 @@ impl Solver<usize, usize> for Solution {
     }
 
     fn part_two(&self) -> Result<usize> {
-        Ok(0)
+        let mut bus = self.input().get_as::<Bus>()?;
+        Ok(bus.find_least_to_sand())
     }
 }
 
@@ -90,10 +91,14 @@ impl Conjunction {
     }
 }
 
+const SAND_SHIFTER_ID: u16 = 1005; // "rx" interpreted as base-36
+
 #[derive(Debug)]
 struct Bus {
     modules: HashMap<u16, Box<dyn Module>>,
     cables: HashMap<u16, Vec<u16>>,
+    watched: HashMap<u16, Option<usize>>,
+    button_presses: usize,
 }
 impl FromStr for Bus {
     type Err = anyhow::Error;
@@ -101,7 +106,9 @@ impl FromStr for Bus {
     fn from_str(s: &str) -> Result<Self> {
         let mut modules: HashMap<u16, Box<dyn Module>> = HashMap::new();
         let mut cables = HashMap::new();
+        let mut watched = HashMap::new();
         let mut conjunctions = vec![];
+        let mut routes_to_output = vec![];
 
         for l in s.lines() {
             let parts = l.split(" -> ").collect_vec();
@@ -129,6 +136,9 @@ impl FromStr for Bus {
                     _ => (),
                 }
             }
+            if outputs.contains(&SAND_SHIFTER_ID) {
+                routes_to_output.push(id);
+            }
             cables.insert(id, outputs);
         }
 
@@ -144,17 +154,38 @@ impl FromStr for Bus {
             modules.insert(cid, Box::new(conj));
         }
 
-        Ok(Self { modules, cables })
+        for route in routes_to_output {
+            for input in cables
+                .iter()
+                .filter(|(_, v)| v.contains(&route))
+                .map(|(&k, _)| k)
+            {
+                watched.insert(input, None);
+            }
+        }
+
+        Ok(Self {
+            modules,
+            cables,
+            watched,
+            button_presses: 0,
+        })
     }
 }
 impl Bus {
     fn push_button(&mut self) -> (usize, usize) {
         let (mut low, mut high) = (0, 0);
         let mut queue = VecDeque::from_iter([(0, 0, Pulse::Low)]);
+        self.button_presses += 1;
         while let Some((from, to, pulse)) = queue.pop_front() {
             match pulse {
                 Pulse::Low => low += 1,
-                Pulse::High => high += 1,
+                Pulse::High => {
+                    high += 1;
+                    if Some(&None) == self.watched.get(&from) {
+                        self.watched.insert(from, Some(self.button_presses));
+                    }
+                }
             }
             let Some(module) = self.modules.get_mut(&to) else {
                 continue;
@@ -178,6 +209,16 @@ impl Bus {
         }
         (total_low, total_high)
     }
+
+    fn find_least_to_sand(&mut self) -> usize {
+        loop {
+            self.push_button();
+            if self.watched.values().all(|v| v.is_some()) {
+                break;
+            }
+        }
+        lcm(&self.watched.values().filter_map(|&v| v).collect_vec())
+    }
 }
 
 fn to_id(s: &str) -> Result<u16> {
@@ -189,11 +230,16 @@ fn to_id(s: &str) -> Result<u16> {
 mod tests {
     use super::*;
 
-    const EXAMPLE_INPUT: &str = "broadcaster -> a, b, c
+    const EXAMPLE_INPUT_PART_1: &str = "broadcaster -> a, b, c
 %a -> b
 %b -> c
 %c -> inv
 &inv -> a";
+    const EXAMPLE_INPUT_PART_2: &str = "broadcaster -> a
+%a -> inv, con
+&inv -> b
+%b -> con
+&con -> rx";
 
     #[test]
     fn should_parse() -> Result<()> {
@@ -220,10 +266,18 @@ mod tests {
 
     #[test]
     fn should_solve_part1() -> Result<()> {
-        let mut bus = EXAMPLE_INPUT.parse::<Bus>()?;
+        let mut bus = EXAMPLE_INPUT_PART_1.parse::<Bus>()?;
         let (low, high) = bus.push_button();
         assert_eq!(8, low);
         assert_eq!(4, high);
+        Ok(())
+    }
+
+    #[test]
+    fn should_solve_part2() -> Result<()> {
+        let mut bus = EXAMPLE_INPUT_PART_2.parse::<Bus>()?;
+        let min = bus.find_least_to_sand();
+        assert_eq!(1, min);
         Ok(())
     }
 }
