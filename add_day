@@ -1,0 +1,11 @@
+#!/bin/bash
+inputs=($(cd inputs && find . -type f -name "day*.txt"))
+IFS=$'\n' sorted=($(sort <<<"${inputs[*]}")); unset IFS
+last_day=$(echo ${sorted[-1]} | sed -nre 's/\.\/day([[:digit:]]+)\.txt/\1/p')
+next_day=$((${last_day#0} + 1))
+echo "Creating files for day $next_day"
+printf -v padded_day "%02d" $next_day
+touch ./inputs/day$padded_day.txt
+cd ./solutions/src/days
+tail -n +2 day00.rs | sed "s/0;/$padded_day;/" > "day$padded_day.rs"
+echo "pub mod day$padded_day;" >> mod.rs
