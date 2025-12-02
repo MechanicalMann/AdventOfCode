@@ -53,23 +53,20 @@ impl Safe {
     #[allow(non_snake_case)] // ???
     fn rotate_0x434C49434B(&mut self, instructions: &[Rotation]) {
         for i in instructions {
+            let prev = self.dial;
             match i {
                 Rotation::Left(n) => {
-                    self.zero_count += n / 100;
-                    if n % 100 > 0 && self.dial > 0 && self.dial - n <= 0 {
-                        self.zero_count += 1;
-                    }
-                    self.dial = (((self.dial - n) % 100) + 100) % 100;
+                    self.dial = self.dial - n;
                 }
                 Rotation::Right(n) => {
-                    self.zero_count += n / 100;
-                    if n % 100 > 0 && self.dial > 0 && self.dial + n >= 100 {
-                        self.zero_count += 1;
-                    }
-                    self.dial = (self.dial + n) % 100;
+                    self.dial = self.dial + n;
                 }
             }
-            assert!(self.dial < 100);
+            self.zero_count += self.dial.abs() / 100;
+            if prev != 0 && self.dial <= 0 {
+                self.zero_count += 1;
+            }
+            self.dial = ((self.dial % 100) + 100) % 100;
         }
     }
 }
