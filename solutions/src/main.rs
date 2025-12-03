@@ -41,6 +41,7 @@ fn main() -> Result<()> {
 
 fn solve() -> Result<()> {
     days::day01::Solution::new().solve()?;
+    days::day02::Solution::new().solve()?;
     Ok(())
 }
 
@@ -51,6 +52,7 @@ fn perf(fine: bool, iterations: u8) -> Result<()> {
     };
     let measures: Vec<_> = vec![
         Measure::get(days::day01::Solution::new()),
+        Measure::get(days::day02::Solution::new()),
     ];
     let count = measures.len();
 
