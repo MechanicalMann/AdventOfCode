@@ -1,8 +1,7 @@
-use std::{collections::HashSet, str::FromStr};
+use std::collections::HashSet;
 
-use crate::solver::Solver;
-use anyhow::{anyhow, Result};
-use itertools::Itertools;
+use crate::{common::Range, solver::Solver};
+use anyhow::Result;
 
 pub struct Solution;
 impl Solver<usize, usize> for Solution {
@@ -24,23 +23,6 @@ impl Solver<usize, usize> for Solution {
     }
 }
 
-#[derive(Debug)]
-struct Range {
-    min: usize,
-    max: usize,
-}
-impl FromStr for Range {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        let split = s.split('-').collect_vec();
-        if split.len() != 2 {
-            return Err(anyhow!("Invalid range specification"));
-        }
-        let (min, max) = (split[0].parse()?, split[1].parse()?);
-        Ok(Self { min, max })
-    }
-}
 impl Range {
     fn get_invalid_ids(&self) -> HashSet<usize> {
         let mut res = HashSet::new();
@@ -121,6 +103,8 @@ fn get_total_invalid_2(ranges: &[Range]) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
 
     const EXAMPLE_INPUT: &str = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
