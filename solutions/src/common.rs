@@ -1,4 +1,8 @@
 #![allow(dead_code)]
+
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Up,
@@ -24,6 +28,33 @@ pub struct IPoint {
 impl IPoint {
     pub fn new(x: isize, y: isize) -> Self {
         IPoint { x, y }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Range {
+    pub min: usize,
+    pub max: usize,
+}
+impl Range {
+    pub fn new(min: usize, max: usize) -> Self {
+        Self { min, max }
+    }
+
+    pub fn contains(&self, n: usize) -> bool {
+        n >= self.min && n <= self.max
+    }
+}
+impl std::str::FromStr for Range {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let split = s.split('-').collect_vec();
+        if split.len() != 2 {
+            return Err(anyhow!("Invalid range specification"));
+        }
+        let (min, max) = (split[0].parse()?, split[1].parse()?);
+        Ok(Self { min, max })
     }
 }
 
