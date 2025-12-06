@@ -44,6 +44,7 @@ fn solve() -> Result<()> {
     days::day02::Solution::new().solve()?;
     days::day03::Solution::new().solve()?;
     days::day04::Solution::new().solve()?;
+    days::day05::Solution::new().solve()?;
     Ok(())
 }
 
@@ -57,6 +58,7 @@ fn perf(fine: bool, iterations: u8) -> Result<()> {
         Measure::get(days::day02::Solution::new()),
         Measure::get(days::day03::Solution::new()),
         Measure::get(days::day04::Solution::new()),
+        Measure::get(days::day05::Solution::new()),
     ];
     let count = measures.len();
 
