@@ -7,7 +7,7 @@ use itertools::Itertools;
 pub struct Solution;
 impl Solver<usize, usize> for Solution {
     const DAY: u8 = 08;
-    const TITLE: &'static str = "UNKNOWN";
+    const TITLE: &'static str = "Playground";
 
     fn new() -> Self {
         Solution {}
