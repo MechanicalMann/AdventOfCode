@@ -10,6 +10,7 @@ pub enum Direction {
     Left,
     Right,
 }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Point {
     pub x: usize,
@@ -20,6 +21,23 @@ impl Point {
         Point { x, y }
     }
 }
+impl std::str::FromStr for Point {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let split: Vec<_> = s
+            .split(',')
+            .filter_map(|x| x.parse::<usize>().ok())
+            .collect();
+        if split.len() != 2 {
+            return Err(anyhow!("Invalid point"));
+        }
+        Ok(Self {
+            x: split[0],
+            y: split[1],
+        })
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IPoint {
     pub x: isize,
@@ -28,6 +46,23 @@ pub struct IPoint {
 impl IPoint {
     pub fn new(x: isize, y: isize) -> Self {
         IPoint { x, y }
+    }
+}
+impl std::str::FromStr for IPoint {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let split: Vec<_> = s
+            .split(',')
+            .filter_map(|x| x.parse::<isize>().ok())
+            .collect();
+        if split.len() != 2 {
+            return Err(anyhow!("Invalid point"));
+        }
+        Ok(Self {
+            x: split[0],
+            y: split[1],
+        })
     }
 }
 
